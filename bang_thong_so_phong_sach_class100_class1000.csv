@@ -1,0 +1,11 @@
+﻿Phan_loai_thong_so,Tieu_chuan_quan_ly_Don_vi,Class_100_Min,Class_100_Max,Class_100_TB_SD,Class_1000_Min,Class_1000_Max,Class_1000_TB_SD
+Hạt bụi (Particles) [≥ 0.5 µm],"Class 100: ≤ 100 | Class 1000: ≤ 1,000 (particles/ft³)",0,2,1.0 ± 1.0,4,8,6.0 ± 2.0
+Hạt bụi (Particles) [≥ 5.0 µm],Class 100: 0 | Class 1000: ≤ 7 (particles/ft³),0,0,0.0 ± 0.0,0,0,0.0 ± 0.0
+Nhiệt độ phòng sạch (Temperature),20.0 – 23.0 °C (SEMI S8: 22 ± 1.0 °C),20.3,20.5,20.37 ± 0.12,20.6,21.0,20.80 ± 0.20
+Độ ẩm tương đối (Relative Humidity),45 ± 5 % (40 – 50 %RH),45.5,47.0,46.33 ± 0.76,46.5,49.5,48.17 ± 1.53
+Vận tốc gió vùng làm việc (Working air velocity at 1.2 m),0.20 – 0.50 m/s (Dòng đơn hướng),0.20,0.56,0.35 ± 0.14,0.23,0.50,0.34 ± 0.12
+Cường độ dòng rối vùng làm việc (Turbulence intensity),< 5 % (Tiêu chuẩn dòng chảy tầng ổn định),0.0 %,2.0 %,0.8 ± 0.5 %,0.0 %,2.0 %,0.9 ± 0.5 %
+Áp suất buồng hồi gió / chênh áp dương (Differential pressure),ΔP ≥ +10 ~ 25 Pa (+1.0 ~ 2.5 mmH₂O),18.0,22.0,20.0 ± 1.2 Pa,18.0,22.0,20.0 ± 1.2 Pa
+Tỷ lệ diện tích đục lỗ sàn nâng (Raised-floor porosity),40 – 60 % (Thiết kế chuẩn),50 %,50 %,50 % (Cố định),50 %,50 %,50 % (Cố định)
+Chiều cao sàn nâng hoàn thiện (Raised-floor height),400 – 800 mm (Tối ưu khí động học),400,800,600 mm (Khuyến nghị),400,800,600 mm (Khuyến nghị)
+Phân cấp độ sạch quốc tế (Cleanliness ISO rating),ISO 14644-1:2015,ISO Class 5,ISO Class 5,ISO 5 (Đạt),ISO Class 6,ISO Class 6,ISO 6 (Đạt)
