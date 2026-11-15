@@ -1,0 +1,22 @@
+﻿STT,Bien_du_lieu,Don_vi,So_lieu
+1,Outdoor Air Temperature,°C,29.93
+2,Outdoor Relative Humidity,%,43.6
+3,Outdoor Air Dew Point,°C,16.40
+4,Outdoor Airflow Rate,m³/h,"1,260,000 (Toàn nhà máy); 100,000 (1 tổ MAU định mức)"
+5,Supply Airflow Rate,m³/h,"1,260,000 (Toàn nhà máy); 105,170 (Quạt đẩy của 1 MAU)"
+6,Filter Differential Pressure,Pa,1182
+7,Cooling Coil Inlet Air Temperature,°C,Precool inlet: 29.93; Recool inlet: 17.70
+8,Cooling Coil Inlet RH,%,Precool inlet: 43.6; Recool inlet: 100
+9,Cooling Coil Outlet Air Temperature,°C,Precool outlet: 17.70; Recool outlet: 11.06
+10,Cooling Coil Outlet RH,%,Precool outlet: 90 – 95; Recool outlet: 100
+11,Chilled Water Inlet Temperature,°C,Precool: 14 (hồi 21); Recool: 8 (hồi 16)
+12,Chilled Water Flow Rate,m³/h,"• CT (15): Q = α × c × ρ × f(TCV) × ΔT ==> f(TCV) = Q / [α × c × ρ × ΔT]
+• CT (16): E = a × f(TCV_pc) + b × f(TCV_rc) + c × [f(TCV_ph) + f(TCV_rh)] (trong đó f(TCV_pc) và f(TCV_rc) là lưu lượng nước lạnh m³/h)"
+13,Chilled Water Valve Opening,%,Precool: 50 – 55; Recool: 0 – 100 (điều tiết theo điểm sương)
+14,Heating Coil Outlet Air Temperature,°C,20.99 (xấp xỉ Setpoint 21.00)
+15,Hot Water Flow Rate,m³/h,f(TCV_rh) theo tải sưởi bù; Mùa hè f(TCV_ph) = 0
+16,Hot Water Valve Opening,%,Preheat: 0; Reheat: 35 – 45
+17,Supply Fan Power,kW,"52.00 (1 tổ MAU quạt đẩy gốc); Tổng điện quạt: 5,472,802 kWh/năm"
+18,Supply Fan Speed,RPM,ND (Không có trong tài liệu)
+19,Supply Air Temperature,°C,20.99 (Setpoint: 21.00)
+20,Supply Air Dew Point,°C,11.06 (Setpoint: 11.06)
