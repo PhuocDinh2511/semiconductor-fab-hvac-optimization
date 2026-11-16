@@ -1,0 +1,132 @@
+{
+  "conformance_level": "L2",
+  "identity": {
+    "vendor": {
+      "value": "ASML",
+      "provenance": {
+        "tier": "vendor_confirmed",
+        "source": "https://www.asml.com/en/products/duv-lithography-systems/twinscan-nxt2050i"
+      }
+    },
+    "model": {
+      "value": "TWINSCAN NXT:2050i",
+      "provenance": {
+        "tier": "vendor_confirmed"
+      }
+    },
+    "category": {
+      "value": "lithography",
+      "provenance": {
+        "tier": "vendor_confirmed"
+      }
+    },
+    "subcategory": {
+      "value": "immersion_scanner",
+      "provenance": {
+        "tier": "vendor_confirmed"
+      }
+    },
+    "wafer_sizes_mm": {
+      "value": [300],
+      "provenance": {
+        "tier": "vendor_confirmed"
+      }
+    },
+    "lifecycle_status": {
+      "value": "in_production",
+      "provenance": {
+        "tier": "vendor_confirmed"
+      }
+    },
+    "node_applicability": {
+      "value": "7nm-28nm Logic and DRAM",
+      "provenance": {
+        "tier": "vendor_confirmed"
+      }
+    }
+  },
+  "physical": {
+    "width_mm": {
+      "value": 3200,
+      "unit": "mm",
+      "provenance": {
+        "tier": "inferred",
+        "note": "Standard 300mm litho scanner footprint"
+      }
+    },
+    "depth_mm": {
+      "value": 8500,
+      "unit": "mm",
+      "provenance": {
+        "tier": "inferred"
+      }
+    },
+    "height_mm": {
+      "value": 3800,
+      "unit": "mm",
+      "provenance": {
+        "tier": "inferred"
+      }
+    },
+    "weight_kg": {
+      "value": 38000,
+      "unit": "kg",
+      "provenance": {
+        "tier": "inferred"
+      }
+    }
+  },
+  "facilities": {
+    "cleanroom_class_required": {
+      "value": "ISO 14644-1 Class 3",
+      "provenance": {
+        "tier": "vendor_confirmed",
+        "note": "ISO Class 3 (<= 1000 particles/m3 at 0.5um) required for lithography bay"
+      }
+    },
+    "heat_load_kw": {
+      "value": 90.0,
+      "unit": "kW",
+      "provenance": {
+        "tier": "vendor_confirmed",
+        "note": "Peak exposure thermal dissipation from scanner optics, stages, and laser source"
+      }
+    },
+    "exhaust": {
+      "value": "Acid/Solvent Process Exhaust (8500 m3/h baseline flow to abatement)",
+      "provenance": {
+        "tier": "vendor_confirmed"
+      }
+    },
+    "pcw_kw": {
+      "value": 110.0,
+      "unit": "kW",
+      "provenance": {
+        "tier": "inferred",
+        "note": "Process Cooling Water loop for immersion optics thermal stability"
+      }
+    },
+    "power_kva": {
+      "value": 150.0,
+      "unit": "kVA",
+      "provenance": {
+        "tier": "inferred"
+      }
+    },
+    "voltage_v": {
+      "value": 480.0,
+      "unit": "V",
+      "provenance": {
+        "tier": "vendor_confirmed"
+      }
+    },
+    "cda_nm3h": {
+      "value": 120.0,
+      "unit": "Nm3/h",
+      "provenance": {
+        "tier": "inferred"
+      }
+    }
+  },
+  "notes": "Equipment configuration conforms to SemiconFab Equipment Schema v1.0 (https://github.com/jinjiefan2020/SemiconFab/blob/main/schema.json). Mapped into Bay 1 Lithography cleanroom simulation."
+}

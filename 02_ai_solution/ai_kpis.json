@@ -1,0 +1,16 @@
+{
+  "model_name": "AI Energy Optimizer with PLC Safety Check",
+  "total_energy_kwh": 216.37552263217682,
+  "avg_power_kw": 9.015646776340596,
+  "max_power_kw": 18.799833099999997,
+  "min_dp_pa": 5.641117962288635,
+  "max_particles": 3978.888154425088,
+  "avg_amc_nh3_ppb": 0.10063337481896698,
+  "max_amc_nh3_ppb": 0.5253101183195206,
+  "avg_vibration_cms2": 0.05106488164229186,
+  "avg_wafer_yield_pct": 99.83031156559268,
+  "avg_mau_vfd_hz": 38.926750403962316,
+  "avg_mau_reheat_kw": 27.97022481616097,
+  "failsafe_trigger_minutes": 33,
+  "violations_count": 26
+}

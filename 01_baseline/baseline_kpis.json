@@ -1,0 +1,15 @@
+{
+  "model_name": "Baseline Traditional Operation",
+  "total_energy_kwh": 473.1962999999869,
+  "avg_power_kw": 19.716512499999997,
+  "max_power_kw": 19.716512499999997,
+  "min_dp_pa": 5.121444247684577,
+  "max_particles": 4767.076049496262,
+  "avg_amc_nh3_ppb": 0.10046094545513298,
+  "max_amc_nh3_ppb": 0.4843747302111056,
+  "avg_vibration_cms2": 0.07011406166863912,
+  "avg_wafer_yield_pct": 99.82853298174689,
+  "avg_mau_vfd_hz": 47.5,
+  "avg_mau_reheat_kw": 34.130402999999994,
+  "violations_count": 18
+}
