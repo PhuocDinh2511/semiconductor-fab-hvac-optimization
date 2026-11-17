@@ -6,7 +6,9 @@ import os
 import json
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+# Only set Agg if no interactive GUI backend is active
+if matplotlib.get_backend().lower() not in ['tkagg', 'qt5agg', 'qtagg', 'wxagg']:
+    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 current_dir = os.path.dirname(os.path.abspath(__file__))

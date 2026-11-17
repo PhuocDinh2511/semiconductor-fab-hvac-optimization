@@ -2,10 +2,17 @@
 run_interactive_scenarios.py
 Interactive Live GUI & Benchmark Runner for 5 Semiconductor Cleanroom Scenarios.
 Features real-time animated multi-physics visualizer, side-by-side Baseline vs AI CDCV,
-and interactive terminal control without repetitive loops.
+and interactive terminal control.
 """
 import os
 import sys
+
+# Force interactive TkAgg backend before importing pyplot
+import matplotlib
+matplotlib.use('TkAgg', force=True)
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
 import json
 import numpy as np
 
@@ -16,28 +23,22 @@ sys.path.append(os.path.join(root_dir, "01_baseline"))
 sys.path.append(os.path.join(root_dir, "02_ai_solution"))
 sys.path.append(current_dir)
 
-import matplotlib
-# Use TkAgg for native Windows desktop interactive GUI
-try:
-    matplotlib.use('TkAgg')
-except Exception:
-    pass
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-
 from cleanroom_model import CleanroomPlant
 from baseline_controller import BaselineController
 from ai_controller import AIEnergyOptimizer
 from scenarios_config import get_all_scenarios
-from scenario_runner import run_scenario_comparison, run_all_scenarios_and_export
-from visualize_scenarios import plot_scenarios_report
+
+# Global reference to keep animation object alive in memory
+active_animation = None
 
 
-def run_live_gui_scenario(scenario_data, speed_factor=12):
+def run_live_gui_scenario(scenario_data, speed_factor=10):
     """
     Launch real-time desktop GUI animated simulation for the selected scenario.
-    speed_factor: simulation minutes advanced per frame (12 = smooth and fast 24h).
+    speed_factor: simulation minutes advanced per frame (10 = smooth 24h animation).
     """
+    global active_animation
+
     sc_name = scenario_data["name"]
     sc_desc = scenario_data["description"]
     times_hr = scenario_data["times_hr"]
@@ -50,9 +51,9 @@ def run_live_gui_scenario(scenario_data, speed_factor=12):
     amc_mult = scenario_data.get("amc_multiplier", np.ones(n_steps))
     ai_fault = scenario_data.get("ai_fault_injection", np.zeros(n_steps, dtype=bool))
 
-    print(f"\n[+] Đang khởi tạo giao diện mô phỏng đồ họa cho: {sc_name}")
-    print("    Cửa sổ đồ họa thời gian thực sẽ xuất hiện trên màn hình máy tính của bạn...")
-    print("    (Đóng cửa sổ đồ họa khi xem xong để quay lại terminal)\n")
+    print(f"\n[+] Đang mở cửa sổ mô phỏng đồ họa cho: {sc_name}")
+    print("    -> Cửa sổ đồ họa thời gian thực đang hiển thị trên màn hình của bạn.")
+    print("    -> Đóng cửa sổ đồ họa sau khi xem xong để nhận báo cáo số liệu.\n")
 
     # Plants for simultaneous execution
     plant_base = CleanroomPlant()
@@ -81,75 +82,87 @@ def run_live_gui_scenario(scenario_data, speed_factor=12):
     cum_e_ai = 0.0
 
     # Setup 4-row live comparison plot
-    fig, axs = plt.subplots(4, 1, figsize=(14, 10.5))
-    fig.canvas.manager.set_window_title(f"SemiconFab 300mm - {sc_name}")
-    plt.subplots_adjust(hspace=0.48, top=0.92, bottom=0.06, left=0.08, right=0.92)
+    fig, axs = plt.subplots(4, 1, figsize=(14, 10))
+    fig.canvas.manager.set_window_title(f"SemiconFab 300mm Live Twin - {sc_name}")
+    plt.subplots_adjust(hspace=0.48, top=0.90, bottom=0.06, left=0.08, right=0.92)
 
-    fig.suptitle(f"{sc_name}\nMô phỏng Trực quan Đối chuẩn Thời gian thực: 01_Baseline (Cố định) vs 02_AI_Solution (CDCV)", fontsize=12, fontweight='bold', y=0.98)
+    # Bring window to foreground on Windows desktop
+    try:
+        win = fig.canvas.manager.window
+        win.lift()
+        win.attributes('-topmost', True)
+        win.after_idle(win.attributes, '-topmost', False)
+    except Exception:
+        pass
 
-    # 1. Panel 0: Scenario Production Disturbances
+    status_text = fig.text(
+        0.5, 0.95,
+        f"Đang khởi động mô phỏng: {sc_name}...",
+        ha='center', va='center', fontsize=11, fontweight='bold',
+        bbox=dict(boxstyle='round,pad=0.5', facecolor='#e0f2fe', edgecolor='#0284c7', lw=1.5)
+    )
+
+    # 1. Panel 0: Scenario Disturbances
     ax_dist = axs[0]
     ax_dist_twin = ax_dist.twinx()
-    line_q, = ax_dist.plot([], [], color='#e67e22', lw=2.0, label="Tải nhiệt máy Q_mes (kW)")
-    line_p, = ax_dist_twin.plot([], [], color='#8e44ad', linestyle='--', lw=1.5, label="Bụi sinh ra P_gen (/min)")
+    line_q, = ax_dist.plot([], [], color='#ea580c', lw=2.0, label="Tải nhiệt máy Q_mes (kW)")
+    line_p, = ax_dist_twin.plot([], [], color='#8b5cf6', linestyle='--', lw=1.5, label="Bụi sinh ra P_gen (/min)")
     ax_dist.set_xlim(0, 24)
     ax_dist.set_ylim(0, 120)
     ax_dist_twin.set_ylim(0, 1200)
-    ax_dist.set_ylabel("Nhiệt (kW)", color='#e67e22', fontweight='bold')
-    ax_dist_twin.set_ylabel("Bụi (/min)", color='#8e44ad', fontweight='bold')
-    ax_dist.set_title("1. Lịch Trình Tải Sản Xuất & Nhiễu Ngoại Cảnh của Kịch Bản", fontsize=10, fontweight='bold')
+    ax_dist.set_ylabel("Nhiệt (kW)", color='#ea580c', fontweight='bold')
+    ax_dist_twin.set_ylabel("Bụi (/min)", color='#8b5cf6', fontweight='bold')
+    ax_dist.set_title("1. Lịch Trình Tải Sản Xuất & Nhiễu Ngoại Cảnh của Kịch Bản", fontsize=9.5, fontweight='bold')
     ax_dist.grid(True, alpha=0.25)
     lines_0 = [line_q, line_p]
     ax_dist.legend(lines_0, [l.get_label() for l in lines_0], loc="upper right", fontsize=8)
 
-    # 2. Panel 1: Fan Electrical Power (kW) & Energy
+    # 2. Panel 1: Fan Electrical Power
     ax_p = axs[1]
     line_p_base, = ax_p.plot([], [], 'r--', lw=1.6, label="Baseline Power (19.7 kW Cố định)")
-    line_p_ai, = ax_p.plot([], [], 'g-', lw=2.2, label="AI CDCV Power (Điều biến theo nhu cầu)")
+    line_p_ai, = ax_p.plot([], [], 'g-', lw=2.2, label="AI CDCV Power (Điều biến thông minh)")
     ax_p.set_xlim(0, 24)
     ax_p.set_ylim(0, 24)
     ax_p.set_ylabel("Công suất (kW)", fontweight='bold')
-    ax_p.set_title("2. Công Suất Tiêu Thụ Điện Quạt: Baseline vs AI CDCV", fontsize=10, fontweight='bold')
+    ax_p.set_title("2. Công Suất Tiêu Thụ Điện Quạt: Baseline vs AI CDCV", fontsize=9.5, fontweight='bold')
     ax_p.grid(True, alpha=0.3)
-    ax_p.legend(loc="upper right", fontsize=8.5)
+    ax_p.legend(loc="upper right", fontsize=8)
 
-    # 3. Panel 2: AI Fan Speed & PLC Gatekeeper
+    # 3. Panel 2: Fan Speeds & PLC Status
     ax_spd = axs[2]
-    line_mau_ai, = ax_spd.plot([], [], color='#2980b9', lw=2.0, label="AI MAU VFD Speed (%)")
-    line_ffu_ai, = ax_spd.plot([], [], color='#16a085', lw=2.0, label="AI FFU Speed (%)")
+    line_mau_ai, = ax_spd.plot([], [], color='#0284c7', lw=2.0, label="AI MAU VFD Speed (%)")
+    line_ffu_ai, = ax_spd.plot([], [], color='#0d9488', lw=2.0, label="AI FFU Speed (%)")
     ax_spd.axhline(95.0, color='r', linestyle=':', label='Baseline MAU (95% - 47.5 Hz)')
-    ax_spd.axhline(100.0, color='darkred', linestyle=':', label='Baseline FFU (100% Cố định)')
+    ax_spd.axhline(100.0, color='darkred', linestyle=':', label='Baseline FFU (100%)')
     ax_spd.set_xlim(0, 24)
-    ax_spd.set_ylim(40, 105)
+    ax_spd.set_ylim(35, 105)
     ax_spd.set_ylabel("Tốc độ (%)", fontweight='bold')
-    ax_spd.set_title("3. Tốc Độ Quạt Biến Tần VFD MAU & Lưới 48 Quạt Trần FFU", fontsize=10, fontweight='bold')
+    ax_spd.set_title("3. Tốc Độ Quạt Biến Tần VFD MAU & Lưới 48 Quạt Trần FFU", fontsize=9.5, fontweight='bold')
     ax_spd.grid(True, alpha=0.3)
     ax_spd.legend(loc="lower right", fontsize=8)
 
-    # 4. Panel 3: Positive Pressure (Delta P) & Cleanliness
+    # 4. Panel 3: Delta P & Particles
     ax_dp = axs[3]
     ax_c_twin = ax_dp.twinx()
     line_dp_b, = ax_dp.plot([], [], 'r--', lw=1.5, label="Baseline dP (Pa)")
     line_dp_a, = ax_dp.plot([], [], 'g-', lw=2.0, label="AI Solution dP (Pa)")
-    ax_dp.axhline(15.0, color='red', linestyle='-', lw=1.8, label="Ngưỡng chuẩn an toàn ISO dP (>=15 Pa)")
-    line_c_a, = ax_c_twin.plot([], [], color='#f39c12', linestyle=':', lw=1.5, label="Nồng độ hạt bụi 0.5um (/m3)")
-    ax_c_twin.axhline(1000.0, color='#e74c3c', linestyle=':', lw=1.2, label="Giới hạn ISO Class 3 (1000 /m3)")
+    ax_dp.axhline(15.0, color='red', linestyle='-', lw=1.8, label="Ngưỡng an toàn ISO (>= 15 Pa)")
+    line_c_a, = ax_c_twin.plot([], [], color='#f59e0b', linestyle=':', lw=1.5, label="Bụi AI 0.5um (/m3)")
+    ax_c_twin.axhline(1000.0, color='#dc2626', linestyle=':', lw=1.2, label="Giới hạn ISO Class 3 (1000 /m3)")
     ax_dp.set_xlim(0, 24)
     ax_dp.set_ylim(0, 45)
     ax_c_twin.set_ylim(0, 2500)
     ax_dp.set_xlabel("Thời gian vận hành (Giờ)", fontweight='bold')
     ax_dp.set_ylabel("Chênh áp dP (Pa)", fontweight='bold')
-    ax_c_twin.set_ylabel("Bụi (/m3)", color='#f39c12', fontweight='bold')
-    ax_dp.set_title("4. Kiểm Soát Chênh Áp Phòng Sạch & Nồng Độ Hạt Bụi ISO Class 3", fontsize=10, fontweight='bold')
+    ax_c_twin.set_ylabel("Bụi (/m3)", color='#f59e0b', fontweight='bold')
+    ax_dp.set_title("4. Kiểm Soát Chênh Áp Phòng Sạch & Nồng Độ Bụi ISO Class 3", fontsize=9.5, fontweight='bold')
     ax_dp.grid(True, alpha=0.3)
     lines_3 = [line_dp_b, line_dp_a, line_c_a]
     ax_dp.legend(lines_3, [l.get_label() for l in lines_3], loc="upper right", fontsize=8)
 
-    # Real-time state tracker
     step_idx = [0]
 
     def update(frame):
-        # Advance simulation by speed_factor minutes per frame
         for _ in range(speed_factor):
             i = step_idx[0]
             if i >= n_steps:
@@ -207,22 +220,49 @@ def run_live_gui_scenario(scenario_data, speed_factor=12):
             line_dp_a.set_data(ts, hist["dp_ai"])
             line_c_a.set_data(ts, hist["particles_ai"])
 
+            last_t = ts[-1]
+            hr_int = int(last_t)
+            min_int = int((last_t - hr_int) * 60)
+            clock = f"{hr_int:02d}:{min_int:02d}"
+
+            cur_p_ai = hist["p_ai"][-1]
+            cur_dp = hist["dp_ai"][-1]
+            saved_now = ((cum_e_base - cum_e_ai) / max(0.01, cum_e_base)) * 100.0
+            is_fs = hist["plc_failsafe"][-1]
+
+            if is_fs:
+                status_text.set_text(f"[{clock}] ⚠️ PLC FAIL-SAFE ACTIVE (Đè lệnh AI đưa quạt lên 95%) | dP: {cur_dp:.1f} Pa | Tiết kiệm: {saved_now:.1f}%")
+                status_text.set_backgroundcolor("#fee2e2")
+                status_text.get_bbox_patch().set_edgecolor("#ef4444")
+            else:
+                status_text.set_text(f"[{clock}]  PLC SAFE (AI CDCV OPTIMAL) | Công suất quạt: {cur_p_ai:.1f} kW | dP: {cur_dp:.1f} Pa | Tiết kiệm: {saved_now:.1f}%")
+                status_text.set_backgroundcolor("#ecfdf5")
+                status_text.get_bbox_patch().set_edgecolor("#10b981")
+
         return line_p_base, line_p_ai
 
     n_frames = (n_steps // speed_factor) + 2
-    ani = FuncAnimation(fig, update, frames=n_frames, interval=20, repeat=False, blit=False)
+    active_animation = FuncAnimation(fig, update, frames=n_frames, interval=30, repeat=False, blit=False)
     plt.show()
 
     # Once window is closed, compute final summary
     print("\n" + "=" * 72)
-    print(f" HOÀN TẤT MÔ PHỎNG ĐỒ HỌA: {sc_name}")
+    print(f" HOÀN TẤT MÔ PHỎNG: {sc_name}")
     print("=" * 72)
     saved_kwh = cum_e_base - cum_e_ai
     saved_pct = (saved_kwh / max(0.001, cum_e_base)) * 100.0
-    print(f"• Tổng điện năng Baseline 24h:  {cum_e_base:.2f} kWh")
-    print(f"• Tổng điện năng AI CDCV 24h:   {cum_e_ai:.2f} kWh")
-    print(f"• Năng lượng quạt tiết kiệm:    {saved_kwh:.2f} kWh ({saved_pct:.1f}%)")
-    print(f"• Số phút Cổng PLC can thiệp:   {sum(hist['plc_failsafe'])} phút")
+    min_dp_b = min(hist['dp_base']) if hist['dp_base'] else 0.0
+    min_dp_a = min(hist['dp_ai']) if hist['dp_ai'] else 0.0
+    max_part_b = max(hist['particles_base']) if hist['particles_base'] else 0.0
+    max_part_a = max(hist['particles_ai']) if hist['particles_ai'] else 0.0
+    fs_mins = sum(hist['plc_failsafe']) if hist['plc_failsafe'] else 0
+
+    print(f"1. Tổng điện năng quạt Baseline 24h:  {cum_e_base:.2f} kWh")
+    print(f"2. Tổng điện năng quạt AI CDCV 24h:   {cum_e_ai:.2f} kWh")
+    print(f"   => Tiết kiệm điện năng quạt:       {saved_kwh:.2f} kWh ({saved_pct:.1f}%)")
+    print(f"3. Áp suất phòng dP nhỏ nhất:         Baseline: {min_dp_b:.2f} Pa  |  AI: {min_dp_a:.2f} Pa")
+    print(f"4. Nồng độ bụi 0.5um cực đại:         Baseline: {max_part_b:.0f} /m3  |  AI: {max_part_a:.0f} /m3")
+    print(f"5. Thời gian Cổng PLC can thiệp:      {fs_mins} phút")
     print("=" * 72)
 
 
@@ -231,7 +271,7 @@ def display_menu():
     print("      HỆ THỐNG KIỂM THỬ KỊCH BẢN VẬN HÀNH PHÒNG SẠCH BÁN DẪN 300MM")
     print("      (03_SCENARIO_TESTING: 01_BASELINE vs 02_AI_SOLUTION CDCV)")
     print("=" * 76)
-    print("  [1] Kịch bản 1: Vận hành Chuẩn 24 Giờ (2 Ca Ngày/Đêm Tiêu chuẩn)")
+    print("  [1] Kịch bản 1: Vận hành Chuẩn 24 Giờ (2 Ca Ngày/Đêm Tiêu chuẩn) [Mặc định]")
     print("  [2] Kịch bản 2: Sự cố Mở Cửa Bảo Dưỡng Buồng Sạch & Xâm Nhập Bụi (11h30)")
     print("  [3] Kịch bản 3: Sóng Nhiệt Mùa Hè Cực Hạn Hsinchu (38.5°C, 90% RH)")
     print("  [4] Kịch bản 4: Đột Biến Hóa Chất AMC (Amoniac NH3 & Dung Môi Track)")
@@ -244,16 +284,39 @@ def display_menu():
 
 def main():
     scenarios = get_all_scenarios()
+
+    # Direct launch if passed as CLI argument (e.g., python run_interactive_scenarios.py 1)
+    if len(sys.argv) > 1:
+        arg = sys.argv[1].strip()
+        if arg in scenarios:
+            print(f"\n[+] Khởi chạy trực tiếp từ dòng lệnh: {scenarios[arg]['name']}")
+            run_live_gui_scenario(scenarios[arg])
+            return
+        elif arg == "6":
+            from scenario_runner import run_all_scenarios_and_export
+            from visualize_scenarios import plot_scenarios_report
+            run_all_scenarios_and_export()
+            out_png = plot_scenarios_report()
+            try:
+                os.startfile(out_png)
+            except Exception:
+                pass
+            return
+
     while True:
         display_menu()
         try:
-            choice = input("\nNhập lựa chọn của bạn (0-7) rồi nhấn ENTER: ").strip()
+            choice = input("\nNhập lựa chọn của bạn (nhấn [1-7] hoặc nhấn phím ENTER để chạy Kịch bản 1): ").strip()
         except (KeyboardInterrupt, EOFError):
             print("\nĐã thoát chương trình.")
             break
 
+        # If user just presses ENTER without typing anything, default to Scenario 1
+        if choice == "":
+            choice = "1"
+
         if choice == "0":
-            print("\nĐã thoát chương trình kiểm thử kịch bản. Chúc bạn một ngày làm việc hiệu quả!")
+            print("\nĐã thoát chương trình kiểm thử kịch bản. Chúc bạn làm việc hiệu quả!")
             break
         elif choice in ["1", "2", "3", "4", "5"]:
             sc = scenarios[choice]
@@ -261,6 +324,8 @@ def main():
             input("\n>>> Nhấn phím ENTER để quay lại Menu chính...")
         elif choice == "6":
             print("\n[+] Đang chạy tự động đối chuẩn toàn bộ 5 kịch bản (vui lòng đợi khoảng 1 phút)...")
+            from scenario_runner import run_all_scenarios_and_export
+            from visualize_scenarios import plot_scenarios_report
             run_all_scenarios_and_export()
             out_png = plot_scenarios_report()
             print(f"\n[✓] Đã xuất xong biểu đồ tổng hợp: {out_png}")
