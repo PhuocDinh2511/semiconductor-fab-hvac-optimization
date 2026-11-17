@@ -2,7 +2,7 @@
 ### Mô Hình Giải Pháp Thông Gió Theo Nhu Cầu Ứng Dụng Trí Tuệ Nhân Tạo & Cổng An Toàn PLC Cho Phòng Sạch Bán Dẫn 300mm
 
 Dự án nghiên cứu và phát triển mô hình giải pháp điều khiển thông gió theo nhu cầu (**Coordinated Demand-Controlled Ventilation - CDCV**) kết hợp **Trí tuệ nhân tạo nhúng tri thức vật lý (PINN-MPC)** và **Cổng chốt an toàn phần cứng (Deterministic PLC Safety Gatekeeper)** cho buồng quang khắc sạch bán dẫn 300mm (Bay 1: Lithography & Track, diện tích $540\text{ m}^2$, thể tích $2,818.8\text{ m}^3$, tiêu chuẩn ISO 14644-1 Class 3), được hiệu chuẩn thực nghiệm theo dữ liệu nhà máy TSMC Hsinchu:
-- **Tiêu chuẩn kiểm soát môi trường**: ISO 14644-1 Class 3 (< 1,000 hạt 0.5 µm/m³), Áp suất dương $\ge 15.0\text{ Pa}$, Nhiệt độ $22.0 \pm 0.5^\circ\text{C}$, Độ ẩm $42.5 \pm 2.5\%$.
+- **Tiêu chuẩn kiểm soát môi trường**: ISO 14644-1:2015 Class 3 (< 1,000 hạt 0.1 µm/m³; < 35 hạt 0.5 µm/m³), Áp suất dương $\ge 15.0\text{ Pa}$, Nhiệt độ $22.0 \pm 0.5^\circ\text{C}$, Độ ẩm $42.5 \pm 2.5\%$.
 - **Kiểm soát AMC (Airborne Molecular Contamination)**: Chuẩn SEMI F21 với màng lọc hóa học than hoạt tính ($\eta_{\text{chem}} = 95\%$), nồng độ $NH_3 \le 10\text{ ppb}$ (thực tế vận hành $\approx 0.10\text{ ppb}$).
 - **Hiệu chuẩn quạt trần FFU (34-Unit Empirical Data)**: Đường đặc tính công suất thực nghiệm ($133.9\text{ W}$ rated, $1,355.6\text{ m}^3/\text{h}$ per FFU), định luật đồng dạng quạt (Fan Affinity Laws $P \propto u^3$).
 - **Thông số MAU (TSMC Hsinchu Climate & Dual-Coil)**: Cụm xử lý khí tươi 2 cấp làm lạnh sơ bộ và làm lạnh sâu với nước lạnh $6^\circ\text{C}$, tổn thất áp suất lọc $1,182\text{ Pa}$.
@@ -62,7 +62,7 @@ semicon_fab_simulation/
 | **Điện năng tiêu thụ 24h** | **462.91 kWh** | **280.60 kWh** | **Tiết kiệm 39.4% (182.3 kWh/ngày)** |
 | **Công suất quạt trung bình** | 19.29 kW | 11.69 kW | Giảm 7.60 kW phụ tải liên tục |
 | **Chênh áp phòng $\Delta P$** | Duy trì $\ge 15.0\text{ Pa}$ | Duy trì $\ge 15.0\text{ Pa}$ | Tuyệt đối an toàn theo ISO |
-| **Độ sạch hạt bụi (0.5 µm)** | Đạt ISO Class 3 | Đạt ISO Class 3 | Không suy giảm chất lượng khí |
+| **Độ sạch hạt bụi nano (0.1 µm)** | Đạt ISO Class 3 (< 1,000/m³) | Đạt ISO Class 3 (< 1,000/m³) | Không suy giảm chất lượng khí |
 | **Nồng độ hóa học AMC $NH_3$** | 0.10 ppb (max 0.47) | 0.10 ppb (max 0.51) | Chuẩn SEMI F21 (< 10 ppb) |
 | **Vi rung động cơ học** | 0.070 cm/s² | **0.051 cm/s²** | **Giảm 27% rung động lên quang khắc** |
 | **Tỷ lệ Wafer Yield (Murphy)** | 99.83% | **99.71%** | Bảo toàn chất lượng xuất xưởng |

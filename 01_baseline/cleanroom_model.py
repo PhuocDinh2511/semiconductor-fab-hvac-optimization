@@ -33,7 +33,7 @@ class CleanroomPlant:
         # High speed: v = 0.52 m/s -> Q = 1355.6 m3/h -> P = 133.9 W per unit
         self.ffu_rated_airflow = 1355.6 / 3600.0  # m3/s per unit (~0.3765 m3/s)
         self.ffu_rated_power = 133.9              # Watts per unit (calibrated from Table 3)
-        self.hepa_efficiency = 0.99999           # ULPA/HEPA 99.999% efficiency for 0.5um particles
+        self.hepa_efficiency = 0.99999           # ULPA U15/U16 99.999% efficiency at MPPS (0.1 - 0.2 µm particles)
         self.chemical_filter_efficiency = 0.95   # Activated carbon filter for AMC (Ammonia/VOC)
 
         # 4. MAU (Make-up Air Unit) System Specifications (from TSMC Hsinchu Dataset)
@@ -79,7 +79,7 @@ class CleanroomPlant:
         self.rh_min = 40.0
         self.rh_max = 45.0
         self.target_dp_min = 15.0                # Pa (>= 0.5 mmH2O = 15 Pa threshold)
-        self.particle_class_limit = 1000.0       # particles/m3 (ISO 14644-1 Class 3 limit)
+        self.particle_class_limit = 1000.0       # particles/m3 (ISO 14644-1:2015 Class 3 limit for particles >= 0.1 µm)
 
         # Airborne Molecular Contamination (SEMI F21 / 300mm Dataset)
         self.amc_nh3_limit = 10.0                # ppb (Ammonium / Ammonia max management criteria)

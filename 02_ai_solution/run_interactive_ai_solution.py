@@ -172,14 +172,14 @@ def run_interactive_ai_simulation(speed_factor=10):
     # -------------------------------------------------------------
     # 4. Particle Concentration & ISO Class 3 Compliance
     # -------------------------------------------------------------
-    line_part, = axs[4].plot([], [], color='#7c3aed', lw=2.0, label="Hạt bụi 0.5 µm / m³")
-    axs[4].axhline(1000.0, color='#b91c1c', linestyle='--', lw=1.5, label="Giới Hạn Tối Đa ISO Class 3 (1000)")
+    line_part, = axs[4].plot([], [], color='#7c3aed', lw=2.0, label="Hạt bụi nano ≥0.1 µm / m³")
+    axs[4].axhline(1000.0, color='#b91c1c', linestyle='--', lw=1.5, label="Giới Hạn Tối Đa ISO Class 3 (≤1,000 hạt/m³)")
     axs[4].fill_between([0, 24], 0, 1000.0, color='#8b5cf6', alpha=0.06, label="Đạt Chuẩn ISO Class 3")
     axs[4].set_xlim(0, 24)
     axs[4].set_ylim(0, 1100)
     axs[4].set_xlabel("Thời Gian Mô Phỏng (Giờ trong ngày)", fontweight='bold')
-    axs[4].set_ylabel("Hạt / m³", fontweight='bold')
-    axs[4].set_title("4. Nồng Độ Bụi Lơ Lửng & Chuẩn Sạch ISO 14644-1 Class 3", fontsize=10.5, fontweight='bold')
+    axs[4].set_ylabel("Hạt nano / m³", fontweight='bold')
+    axs[4].set_title("4. Nồng Độ Bụi Nano Lơ Lửng & Chuẩn Sạch ISO 14644-1:2015 Class 3", fontsize=10.5, fontweight='bold')
     axs[4].grid(True, alpha=0.3)
     axs[4].legend(loc="upper right", fontsize=8.5)
 
