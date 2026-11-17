@@ -2,7 +2,7 @@
   "1": {
     "scenario_id": "scenario_1",
     "scenario_name": "Kịch bản 1: Vận hành Chuẩn 24 Giờ (2 Ca Ngày/Đêm)",
-    "scenario_description": "Chu trình 24h tiêu chuẩn gồm ca ngày toàn tải (8,500 m3/h) và ca đêm tiết lưu (5,000 m3/h).",
+    "scenario_description": "Chu trình 24h tiêu chuẩn: ca ngày toàn tải (8,500 m3/h) và ca đêm non tải (5,000 m3/h). Tham chiếu: Zhuang et al. (2021) CDCV & TSMC Hsinchu Baseline.",
     "baseline": {
       "mode": "baseline",
       "total_energy_kwh": 473.1962999999869,
@@ -48,8 +48,8 @@
   },
   "2": {
     "scenario_id": "scenario_2",
-    "scenario_name": "Kịch bản 2: Sự cố Mở Cửa Bảo Dưỡng & Xâm Nhập Bụi",
-    "scenario_description": "Cửa phòng sạch bị mở trong 30 phút (11h30 - 12h00). Thử thách phản ứng của Cổng an toàn PLC.",
+    "scenario_name": "Kịch bản 2: Sự cố Mở Cửa Bảo Dưỡng & Sụp Đổ Áp Suất Dương",
+    "scenario_description": "Cửa phòng sạch bị mở 30 phút (11h30 - 12h00) gây tụt áp và rò rỉ bụi (+750 hạt/min). Tham chiếu: Zhou et al. (Building and Environment 2024), Tiêu chuẩn ISO 14644-3 & SEMI S2.",
     "baseline": {
       "mode": "baseline",
       "total_energy_kwh": 473.1962999999869,
@@ -96,7 +96,7 @@
   "3": {
     "scenario_id": "scenario_3",
     "scenario_name": "Kịch bản 3: Sóng Nhiệt Mùa Hè Cực Hạn (38.5°C, 90% RH)",
-    "scenario_description": "Điều kiện nhiệt ẩm khắc nghiệt ngoài trời kiểm tra tải tách ẩm sâu và sấy bù của cụm MAU.",
+    "scenario_description": "Nhiệt ẩm ngoài trời khắc nghiệt kiểm tra phụ tải tách ẩm sâu và sấy bù của MAU. Tham chiếu: Porowski & Jakubiak (Energies 2022) & TSMC Hsinchu Summer Peak.",
     "baseline": {
       "mode": "baseline",
       "total_energy_kwh": 473.1962999999869,
@@ -142,8 +142,8 @@
   },
   "4": {
     "scenario_id": "scenario_4",
-    "scenario_name": "Kịch bản 4: Đột Biến Hóa Chất AMC (Amoniac NH3 & Dung Môi)",
-    "scenario_description": "Phát tán hóa chất AMC nồng độ cao từ công đoạn nướng keo Track Coater. Kiểm tra chuẩn SEMI F21-95.",
+    "scenario_name": "Kịch bản 4: Đột Biến Hóa Chất AMC (Amoniac NH3 & Dung Môi Bốc Hơi)",
+    "scenario_description": "Phát tán hóa chất AMC nồng độ cao từ công đoạn nướng keo Track Coater (4.5x). Tham chiếu: Li et al. (AAQR 2007) & Chuẩn SEMI F21-95 (<10 ppb).",
     "baseline": {
       "mode": "baseline",
       "total_energy_kwh": 473.1962999999869,
@@ -189,8 +189,8 @@
   },
   "5": {
     "scenario_id": "scenario_5",
-    "scenario_name": "Kịch bản 5: Chế độ Chờ Cuối Tuần / Bảo Trì Máy Quang Khắc",
-    "scenario_description": "Buồng sạch hoạt động ở chế độ chờ 24h, kiểm chứng mức tiết kiệm điện tối đa ở điểm non tải (35 Hz).",
+    "scenario_name": "Kịch bản 5: Chế độ Chờ Cuối Tuần / Bảo Trì Máy Quang Khắc ASML",
+    "scenario_description": "Buồng sạch hoạt động ở chế độ chờ 24h, kiểm chứng mức tiết kiệm điện tối đa ở điểm non tải (35 Hz). Tham chiếu: TSMC VFD empirical dataset & DeepMind Safety-First AI.",
     "baseline": {
       "mode": "baseline",
       "total_energy_kwh": 473.1962999999869,

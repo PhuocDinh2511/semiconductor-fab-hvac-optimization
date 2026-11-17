@@ -1,4 +1,5 @@
-# 02_AI_SOLUTION: Mô Hình Phòng Sạch Ứng Dụng Giải Pháp AI & Chốt An Toàn PLC
+# 02_AI_SOLUTION: Mô Hình Giải Pháp AI-CDCV & Chốt An Toàn PLC
+### AI-CDCV: An AI-Driven Demand-Controlled Ventilation Solution for Semiconductor Cleanrooms
 
 Dự án này hiện thực hóa giải pháp điều khiển thông minh và tối ưu hóa năng lượng cho phòng sạch nhà máy bán dẫn (**SemiconFab 300mm Bay 1 - Lithography & Track**), dựa trên các nghiên cứu khoa học tiên tiến và tiêu chuẩn an toàn công nghiệp quốc tế.
 
