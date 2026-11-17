@@ -39,6 +39,7 @@ def run_live_gui_scenario(scenario_data, speed_factor=10):
     """
     global active_animation
 
+    sc_id = scenario_data.get("id", "scenario_1")
     sc_name = scenario_data["name"]
     sc_desc = scenario_data["description"]
     times_hr = scenario_data["times_hr"]
@@ -52,6 +53,7 @@ def run_live_gui_scenario(scenario_data, speed_factor=10):
     ai_fault = scenario_data.get("ai_fault_injection", np.zeros(n_steps, dtype=bool))
 
     print(f"\n[+] Đang mở cửa sổ mô phỏng đồ họa cho: {sc_name}")
+    print(f"    Mô tả đặc thù: {sc_desc}")
     print("    -> Cửa sổ đồ họa thời gian thực đang hiển thị trên màn hình của bạn.")
     print("    -> Đóng cửa sổ đồ họa sau khi xem xong để nhận báo cáo số liệu.\n")
 
@@ -82,7 +84,7 @@ def run_live_gui_scenario(scenario_data, speed_factor=10):
     cum_e_ai = 0.0
 
     # Setup 4-row live comparison plot
-    fig, axs = plt.subplots(4, 1, figsize=(14, 10))
+    fig, axs = plt.subplots(4, 1, figsize=(14, 10.5))
     fig.canvas.manager.set_window_title(f"SemiconFab 300mm Live Twin - {sc_name}")
     plt.subplots_adjust(hspace=0.48, top=0.90, bottom=0.06, left=0.08, right=0.92)
 
@@ -95,26 +97,88 @@ def run_live_gui_scenario(scenario_data, speed_factor=10):
     except Exception:
         pass
 
+    # Status banner top
+    banner_colors = {
+        "scenario_1": ("#e0f2fe", "#0284c7"),
+        "scenario_2": ("#fee2e2", "#ef4444"),
+        "scenario_3": ("#ffedd5", "#ea580c"),
+        "scenario_4": ("#f3e8ff", "#9333ea"),
+        "scenario_5": ("#ecfdf5", "#10b981")
+    }
+    bg_c, border_c = banner_colors.get(sc_id, ("#e0f2fe", "#0284c7"))
+
     status_text = fig.text(
         0.5, 0.95,
-        f"Đang khởi động mô phỏng: {sc_name}...",
-        ha='center', va='center', fontsize=11, fontweight='bold',
-        bbox=dict(boxstyle='round,pad=0.5', facecolor='#e0f2fe', edgecolor='#0284c7', lw=1.5)
+        f"[{sc_name.split(':')[0].upper()}] Đang chạy mô phỏng: {sc_desc}",
+        ha='center', va='center', fontsize=10.5, fontweight='bold',
+        bbox=dict(boxstyle='round,pad=0.5', facecolor=bg_c, edgecolor=border_c, lw=1.5)
     )
 
-    # 1. Panel 0: Scenario Disturbances
+    # 1. Panel 0: Scenario Disturbances (Adaptive per scenario)
     ax_dist = axs[0]
     ax_dist_twin = ax_dist.twinx()
-    line_q, = ax_dist.plot([], [], color='#ea580c', lw=2.0, label="Tải nhiệt máy Q_mes (kW)")
-    line_p, = ax_dist_twin.plot([], [], color='#8b5cf6', linestyle='--', lw=1.5, label="Bụi sinh ra P_gen (/min)")
-    ax_dist.set_xlim(0, 24)
-    ax_dist.set_ylim(0, 120)
-    ax_dist_twin.set_ylim(0, 1200)
-    ax_dist.set_ylabel("Nhiệt (kW)", color='#ea580c', fontweight='bold')
-    ax_dist_twin.set_ylabel("Bụi (/min)", color='#8b5cf6', fontweight='bold')
-    ax_dist.set_title("1. Lịch Trình Tải Sản Xuất & Nhiễu Ngoại Cảnh của Kịch Bản", fontsize=9.5, fontweight='bold')
+
+    if sc_id == "scenario_1":
+        line_q, = ax_dist.plot([], [], color='#ea580c', lw=2.0, label="Tải nhiệt máy Q_mes (kW)")
+        line_p, = ax_dist_twin.plot([], [], color='#8b5cf6', linestyle='--', lw=1.5, label="Bụi sinh ra P_gen (/min)")
+        ax_dist.set_xlim(0, 24)
+        ax_dist.set_ylim(0, 120)
+        ax_dist_twin.set_ylim(0, 800)
+        ax_dist.set_ylabel("Nhiệt (kW)", color='#ea580c', fontweight='bold')
+        ax_dist_twin.set_ylabel("Bụi (/min)", color='#8b5cf6', fontweight='bold')
+        ax_dist.set_title("1. [KỊCH BẢN 1] Chu Trình 24H Chuẩn: Ca Ngày (90 kW - 8,500 m3/h) ⟷ Ca Đêm Tiết Lưu (25 kW - 5,000 m3/h)", fontsize=9.5, fontweight='bold', color='#0369a1')
+        lines_0 = [line_q, line_p]
+
+    elif sc_id == "scenario_2":
+        line_q, = ax_dist.plot([], [], color='#ea580c', lw=1.8, label="Tải nhiệt máy Q_mes (kW)")
+        line_exh, = ax_dist_twin.plot([], [], color='#dc2626', lw=2.4, label="Khí xả buồng đột biến (m3/h)")
+        ax_dist.axvspan(11.5, 12.0, color='#fee2e2', alpha=0.7, label="⚠️ SỰ CỐ MỞ CỬA BUỒNG SẠCH (11h30 - 12h00)")
+        ax_dist.set_xlim(0, 24)
+        ax_dist.set_ylim(0, 120)
+        ax_dist_twin.set_ylim(4000, 12000)
+        ax_dist.set_ylabel("Nhiệt (kW)", color='#ea580c', fontweight='bold')
+        ax_dist_twin.set_ylabel("Khí xả (m3/h)", color='#dc2626', fontweight='bold')
+        ax_dist.set_title("1. [KỊCH BẢN 2] Sự Cố Mở Cửa Buồng (11h30-12h00): Bụi tràn +750/min, Khí xả vọt 10,800 m3/h!", fontsize=9.5, fontweight='bold', color='#b91c1c')
+        lines_0 = [line_q, line_exh]
+
+    elif sc_id == "scenario_3":
+        line_temp, = ax_dist.plot([], [], color='#dc2626', lw=2.4, label="Nhiệt độ ngoài trời T_out (°C)")
+        line_rh, = ax_dist_twin.plot([], [], color='#0284c7', linestyle='--', lw=2.0, label="Độ ẩm ngoài trời RH_out (%)")
+        ax_dist.axvspan(9.0, 18.0, color='#ffedd5', alpha=0.5, label="☀️ ĐỈNH ĐIỂM SÓNG NHIỆT (Đỉnh 38.5°C, 90% RH)")
+        ax_dist.set_xlim(0, 24)
+        ax_dist.set_ylim(20, 45)
+        ax_dist_twin.set_ylim(50, 100)
+        ax_dist.set_ylabel("Nhiệt độ ngoài (°C)", color='#dc2626', fontweight='bold')
+        ax_dist_twin.set_ylabel("Độ ẩm ngoài (%)", color='#0284c7', fontweight='bold')
+        ax_dist.set_title("1. [KỊCH BẢN 3] Sóng Nhiệt Mùa Hè Cực Hạn Hsinchu: Đỉnh 38.5°C & 90% RH (Tải Tách Ẩm & Sấy Bù Tối Đa)", fontsize=9.5, fontweight='bold', color='#c2410c')
+        lines_0 = [line_temp, line_rh]
+
+    elif sc_id == "scenario_4":
+        line_amc_in, = ax_dist.plot([], [], color='#7e22ce', lw=2.4, label="Đột biến AMC NH3 ngoài (ppb)")
+        line_p, = ax_dist_twin.plot([], [], color='#8b5cf6', linestyle='--', lw=1.5, label="Bụi sinh ra P_gen (/min)")
+        ax_dist.axvspan(14.0, 16.5, color='#f3e8ff', alpha=0.7, label="☣️ ĐỘT BIẾN HÓA CHẤT AMC NH3 (Tăng 4.5 lần)")
+        ax_dist.axhline(10.0, color='#ef4444', linestyle=':', lw=1.5, label="Giới hạn SEMI F21-95 (10 ppb)")
+        ax_dist.set_xlim(0, 24)
+        ax_dist.set_ylim(0, 50)
+        ax_dist_twin.set_ylim(0, 1000)
+        ax_dist.set_ylabel("AMC NH3 (ppb)", color='#7e22ce', fontweight='bold')
+        ax_dist_twin.set_ylabel("Bụi (/min)", color='#8b5cf6', fontweight='bold')
+        ax_dist.set_title("1. [KỊCH BẢN 4] Đột Biến Hóa Chất AMC: Amoniac NH3 tăng 4.5x tại buồng nướng keo Track Coater", fontsize=9.5, fontweight='bold', color='#7e22ce')
+        lines_0 = [line_amc_in, line_p]
+
+    else: # scenario_5
+        line_q, = ax_dist.plot([], [], color='#059669', lw=2.2, label="Tải máy Stepper Chế Độ Chờ (25 kW Cố định)")
+        line_p, = ax_dist_twin.plot([], [], color='#64748b', linestyle='--', lw=1.5, label="Bụi nhân sự tối thiểu (80/min)")
+        ax_dist.axhspan(0, 30, color='#ecfdf5', alpha=0.6, label=" Chế độ chờ cuối tuần / Bảo trì máy quang khắc (25 kW)")
+        ax_dist.set_xlim(0, 24)
+        ax_dist.set_ylim(0, 60)
+        ax_dist_twin.set_ylim(0, 400)
+        ax_dist.set_ylabel("Nhiệt (kW)", color='#059669', fontweight='bold')
+        ax_dist_twin.set_ylabel("Bụi (/min)", color='#64748b', fontweight='bold')
+        ax_dist.set_title("1. [KỊCH BẢN 5] Chế Độ Chờ Cuối Tuần: Máy quang khắc 25 kW, Biến tần MAU ghìm ở 35.0 Hz (-61% điện)", fontsize=9.5, fontweight='bold', color='#047857')
+        lines_0 = [line_q, line_p]
+
     ax_dist.grid(True, alpha=0.25)
-    lines_0 = [line_q, line_p]
     ax_dist.legend(lines_0, [l.get_label() for l in lines_0], loc="upper right", fontsize=8)
 
     # 2. Panel 1: Fan Electrical Power
@@ -210,8 +274,23 @@ def run_live_gui_scenario(scenario_data, speed_factor=10):
 
         if len(hist["time_hr"]) > 0:
             ts = hist["time_hr"]
-            line_q.set_data(ts, q_mes[:len(ts)])
-            line_p.set_data(ts, particle_gen[:len(ts)])
+            if sc_id == "scenario_1":
+                line_q.set_data(ts, q_mes[:len(ts)])
+                line_p.set_data(ts, particle_gen[:len(ts)])
+            elif sc_id == "scenario_2":
+                line_q.set_data(ts, q_mes[:len(ts)])
+                line_exh.set_data(ts, [exhaust_override[k] * 3600.0 for k in range(len(ts))])
+            elif sc_id == "scenario_3":
+                line_temp.set_data(ts, outdoor_temp[:len(ts)])
+                line_rh.set_data(ts, outdoor_rh[:len(ts)])
+            elif sc_id == "scenario_4":
+                amc_curve = [5.0 * amc_mult[k] for k in range(len(ts))]
+                line_amc_in.set_data(ts, amc_curve)
+                line_p.set_data(ts, particle_gen[:len(ts)])
+            else:
+                line_q.set_data(ts, q_mes[:len(ts)])
+                line_p.set_data(ts, particle_gen[:len(ts)])
+
             line_p_base.set_data(ts, hist["p_base"])
             line_p_ai.set_data(ts, hist["p_ai"])
             line_mau_ai.set_data(ts, hist["u_mau_ai"])
@@ -230,14 +309,30 @@ def run_live_gui_scenario(scenario_data, speed_factor=10):
             saved_now = ((cum_e_base - cum_e_ai) / max(0.01, cum_e_base)) * 100.0
             is_fs = hist["plc_failsafe"][-1]
 
+            tag = f"[{sc_name.split(':')[0]}]"
             if is_fs:
-                status_text.set_text(f"[{clock}] ⚠️ PLC FAIL-SAFE ACTIVE (Đè lệnh AI đưa quạt lên 95%) | dP: {cur_dp:.1f} Pa | Tiết kiệm: {saved_now:.1f}%")
+                status_text.set_text(f"{tag} [{clock}] ⚠️ PLC FAIL-SAFE ACTIVE (Đè lệnh AI đưa quạt lên 95%) | dP: {cur_dp:.1f} Pa | Tiết kiệm: {saved_now:.1f}%")
                 status_text.set_backgroundcolor("#fee2e2")
                 status_text.get_bbox_patch().set_edgecolor("#ef4444")
-            else:
-                status_text.set_text(f"[{clock}]  PLC SAFE (AI CDCV OPTIMAL) | Công suất quạt: {cur_p_ai:.1f} kW | dP: {cur_dp:.1f} Pa | Tiết kiệm: {saved_now:.1f}%")
+            elif sc_id == "scenario_3":
+                cur_tout = outdoor_temp[len(ts)-1]
+                cur_rhout = outdoor_rh[len(ts)-1]
+                status_text.set_text(f"{tag} [{clock}] ☀️ SÓNG NHIỆT ({cur_tout:.1f}°C, {cur_rhout:.0f}% RH) | Quạt AI: {cur_p_ai:.1f} kW | dP: {cur_dp:.1f} Pa | Tiết kiệm: {saved_now:.1f}%")
+                status_text.set_backgroundcolor("#ffedd5")
+                status_text.get_bbox_patch().set_edgecolor("#ea580c")
+            elif sc_id == "scenario_4":
+                cur_amc = hist["amc_ai"][-1]
+                status_text.set_text(f"{tag} [{clock}] ☣️ ĐỘT BIẾN AMC NH3: {cur_amc:.1f} ppb | Quạt AI: {cur_p_ai:.1f} kW | dP: {cur_dp:.1f} Pa | Tiết kiệm: {saved_now:.1f}%")
+                status_text.set_backgroundcolor("#f3e8ff")
+                status_text.get_bbox_patch().set_edgecolor("#9333ea")
+            elif sc_id == "scenario_5":
+                status_text.set_text(f"{tag} [{clock}]  CHẾ ĐỘ CHỜ CUỐI TUẦN (Non tải 35 Hz) | Quạt AI: {cur_p_ai:.1f} kW | Tiết kiệm điện: {saved_now:.1f}%")
                 status_text.set_backgroundcolor("#ecfdf5")
                 status_text.get_bbox_patch().set_edgecolor("#10b981")
+            else:
+                status_text.set_text(f"{tag} [{clock}]  PLC SAFE (AI CDCV OPTIMAL) | Quạt AI: {cur_p_ai:.1f} kW | dP: {cur_dp:.1f} Pa | Tiết kiệm: {saved_now:.1f}%")
+                status_text.set_backgroundcolor("#e0f2fe")
+                status_text.get_bbox_patch().set_edgecolor("#0284c7")
 
         return line_p_base, line_p_ai
 
@@ -292,15 +387,15 @@ def main():
             print(f"\n[+] Khởi chạy trực tiếp từ dòng lệnh: {scenarios[arg]['name']}")
             run_live_gui_scenario(scenarios[arg])
             return
-        elif arg == "6":
+        elif arg in ["6", "all"]:
             from scenario_runner import run_all_scenarios_and_export
             from visualize_scenarios import plot_scenarios_report
             run_all_scenarios_and_export()
-            out_png = plot_scenarios_report()
-            try:
-                os.startfile(out_png)
-            except Exception:
-                pass
+            plot_scenarios_report(show=True)
+            return
+        elif arg == "7":
+            from visualize_scenarios import plot_scenarios_report
+            plot_scenarios_report(show=True)
             return
 
     while True:
@@ -323,25 +418,19 @@ def main():
             run_live_gui_scenario(sc)
             input("\n>>> Nhấn phím ENTER để quay lại Menu chính...")
         elif choice == "6":
-            print("\n[+] Đang chạy tự động đối chuẩn toàn bộ 5 kịch bản (vui lòng đợi khoảng 1 phút)...")
+            print("\n[+] Đang chạy tự động đối chuẩn toàn bộ 5 kịch bản và mở bảng tổng hợp...")
             from scenario_runner import run_all_scenarios_and_export
             from visualize_scenarios import plot_scenarios_report
             run_all_scenarios_and_export()
-            out_png = plot_scenarios_report()
+            out_png = plot_scenarios_report(show=True)
             print(f"\n[✓] Đã xuất xong biểu đồ tổng hợp: {out_png}")
-            try:
-                os.startfile(out_png)
-            except Exception:
-                pass
             input("\n>>> Nhấn phím ENTER để quay lại Menu chính...")
         elif choice == "7":
             png_file = os.path.join(current_dir, "scenario_comparison_report.png")
             if os.path.exists(png_file):
-                print(f"\n[+] Đang mở tệp ảnh: {png_file}")
-                try:
-                    os.startfile(png_file)
-                except Exception:
-                    pass
+                print(f"\n[+] Đang mở cửa sổ biểu đồ tổng hợp: {png_file}")
+                from visualize_scenarios import plot_scenarios_report
+                plot_scenarios_report(show=True)
             else:
                 print("\nChưa có tệp ảnh báo cáo. Vui lòng chọn [6] để chạy trước!")
             input("\n>>> Nhấn phím ENTER để quay lại Menu chính...")

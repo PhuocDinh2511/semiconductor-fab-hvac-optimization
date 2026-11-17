@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 current_dir = os.path.dirname(os.path.abspath(__file__))
 json_path = os.path.join(current_dir, "scenarios_benchmark_results.json")
 
-def plot_scenarios_report():
+def plot_scenarios_report(show=False):
     if not os.path.exists(json_path):
         print(f"Error: {json_path} does not exist. Please run scenario_runner.py first.")
         return
@@ -134,9 +134,21 @@ def plot_scenarios_report():
 
     out_png = os.path.join(current_dir, "scenario_comparison_report.png")
     plt.savefig(out_png, bbox_inches='tight')
-    plt.close()
     print(f"[OK] Master scenario comparison plot saved to: {out_png}")
+
+    if show:
+        try:
+            win = fig.canvas.manager.window
+            win.lift()
+            win.attributes('-topmost', True)
+            win.after_idle(win.attributes, '-topmost', False)
+        except Exception:
+            pass
+        plt.show()
+    else:
+        plt.close(fig)
+
     return out_png
 
 if __name__ == "__main__":
-    plot_scenarios_report()
+    plot_scenarios_report(show=True)
