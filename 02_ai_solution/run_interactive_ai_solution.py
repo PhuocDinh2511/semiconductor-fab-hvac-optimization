@@ -21,11 +21,13 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-from cleanroom_model import CleanroomPlant
-from bay1_model import CONTROL, LIMITS
+from bay1_model import CleanroomPlant, CONTROL, LIMITS
 from bay1_scenarios import generate_benchmark_day
 from bay1_simulation import simulation_step
 from ai_controller import DirectFanController
+
+# Global reference to keep animation object alive in memory and prevent GC pausing
+active_animation = None
 
 
 def get_mes_phase_info(t_hr):
@@ -61,13 +63,15 @@ def run_interactive_ai_simulation(speed_factor=10):
     speed_factor: Number of simulation minutes advanced per animation frame.
     Default 10 = fast, smooth 24h interactive execution.
     """
+    global active_animation
+
     print("=" * 76)
     print("  LAUNCHING INTERACTIVE CLEANROOM AI SIMULATION (02_AI_SOLUTION)")
     print("  Fast Policy (MPC Imitation) + PINN Forecast + GPR Uncertainty + PLC Gatekeeper")
     print("=" * 76)
     print(f"-> Tốc độ mô phỏng: {speed_factor} phút/frame")
-    print("-> Cửa sổ mô phỏng thời gian thực đang hiển thị trên màn hình.")
-    print("-> Đóng cửa sổ để dừng mô phỏng.\n")
+    print("-> Cửa sổ mô phỏng thời gian thực đang hiển thị trên màn hình của bạn.")
+    print("-> Đóng cửa sổ đồ họa sau khi xem xong để kết thúc chương trình.\n")
 
     n_steps = 1440
     scenario = generate_benchmark_day(n_steps)
@@ -205,78 +209,84 @@ def run_interactive_ai_simulation(speed_factor=10):
     }
 
     def update_frame(frame):
-        for _ in range(speed_factor):
-            idx = state_tracker["current_step"]
-            if idx >= n_steps:
-                break
-            cmd, res = simulation_step(plant, ai_optimizer, scenario, idx, "ai")
-            state_tracker["cum_energy"] += res["p_total_kw"] * (1.0 / 60.0)
+        try:
+            for _ in range(speed_factor):
+                idx = state_tracker["current_step"]
+                if idx >= n_steps:
+                    break
+                cmd, res = simulation_step(plant, ai_optimizer, scenario, idx, "ai")
+                state_tracker["cum_energy"] += res["p_total_kw"] * (1.0 / 60.0)
 
-            history["step"].append(idx)
-            history["time_hr"].append(times_hr[idx])
-            history["q_mes"].append(q_mes[idx])
-            history["particle_gen"].append(particle_gen[idx])
-            history["power_kw"].append(res["p_total_kw"])
-            history["cum_energy_kwh"].append(state_tracker["cum_energy"])
-            history["u_mau"].append(cmd["u_mau"])
-            history["u_ffu"].append(cmd["u_ffu"])
-            history["dp"].append(res["dp"])
-            history["particles"].append(res["particle_count"])
-            history["temp"].append(res["temp"])
-            history["plc_status"].append(cmd["status"])
-            history["failsafe_active"].append(cmd["production_hold"])
+                history["step"].append(idx)
+                history["time_hr"].append(times_hr[idx])
+                history["q_mes"].append(q_mes[idx])
+                history["particle_gen"].append(particle_gen[idx])
+                history["power_kw"].append(res["p_total_kw"])
+                history["cum_energy_kwh"].append(state_tracker["cum_energy"])
+                history["u_mau"].append(cmd["u_mau"])
+                history["u_ffu"].append(cmd["u_ffu"])
+                history["dp"].append(res["dp"])
+                history["particles"].append(res["particle_count"])
+                history["temp"].append(res["temp"])
+                history["plc_status"].append(cmd["status"])
+                history["failsafe_active"].append(cmd["production_hold"])
 
-            state_tracker["current_step"] += 1
+                state_tracker["current_step"] += 1
 
-        if not history["time_hr"]:
-            return line_q_mes, line_p_gen, line_power, line_mau, line_ffu, line_dp, line_part
+            if not history["time_hr"]:
+                return line_q_mes, line_p_gen, line_power, line_mau, line_ffu, line_dp, line_part
 
-        t_data = history["time_hr"]
-        line_q_mes.set_data(t_data, history["q_mes"])
-        line_p_gen.set_data(t_data, history["particle_gen"])
-        line_power.set_data(t_data, history["power_kw"])
-        line_mau.set_data(t_data, history["u_mau"])
-        line_ffu.set_data(t_data, history["u_ffu"])
-        axs[3].set_ylim(min(0, min(history["dp"])), max(32, max(history["dp"]) * 1.05))
-        axs[4].set_ylim(0, max(1100, max(history["particles"]) * 1.05))
-        line_dp.set_data(t_data, history["dp"])
-        line_part.set_data(t_data, history["particles"])
+            t_data = history["time_hr"]
+            line_q_mes.set_data(t_data, history["q_mes"])
+            line_p_gen.set_data(t_data, history["particle_gen"])
+            line_power.set_data(t_data, history["power_kw"])
+            line_mau.set_data(t_data, history["u_mau"])
+            line_ffu.set_data(t_data, history["u_ffu"])
+            axs[3].set_ylim(min(0, min(history["dp"])), max(32, max(history["dp"]) * 1.05))
+            axs[4].set_ylim(0, max(1100, max(history["particles"]) * 1.05))
+            line_dp.set_data(t_data, history["dp"])
+            line_part.set_data(t_data, history["particles"])
 
-        last_t = t_data[-1]
-        for cur in time_cursors:
-            cur.set_xdata([last_t, last_t])
+            last_t = t_data[-1]
+            for cur in time_cursors:
+                cur.set_xdata([last_t, last_t])
 
-        hr_int = int(last_t)
-        min_int = int((last_t - hr_int) * 60)
-        clock_str = f"{hr_int:02d}:{min_int:02d}"
+            hr_int = int(last_t)
+            min_int = int((last_t - hr_int) * 60)
+            clock_str = f"{hr_int:02d}:{min_int:02d}"
 
-        cur_q = history["q_mes"][-1]
-        cur_p = history["power_kw"][-1]
-        cur_dp = history["dp"][-1]
-        cur_status = history["plc_status"][-1]
-        cum_e = state_tracker["cum_energy"]
+            cur_q = history["q_mes"][-1]
+            cur_p = history["power_kw"][-1]
+            cur_dp = history["dp"][-1]
+            cur_status = history["plc_status"][-1]
+            cum_e = state_tracker["cum_energy"]
 
-        mes_desc, _ = get_mes_phase_info(last_t)
+            mes_desc, _ = get_mes_phase_info(last_t)
 
-        base_e_so_far = baseline_kw * (state_tracker["current_step"] / 60.0)
-        saved_pct = ((base_e_so_far - cum_e) / max(0.1, base_e_so_far)) * 100.0
+            base_e_so_far = baseline_kw * (state_tracker["current_step"] / 60.0)
+            saved_pct = ((base_e_so_far - cum_e) / max(0.1, base_e_so_far)) * 100.0
 
-        if cur_status != "SAFE":
-            status_text.set_text(
-                f"[{clock_str}] MES: {mes_desc} | ⚠️ GIỮ SẢN XUẤT (PLC Gatekeeper Fallback) | dP: {cur_dp:.1f} Pa | Tiết kiệm: {saved_pct:.1f}%"
-            )
-            status_text.set_backgroundcolor("#fee2e2")
-            status_text.get_bbox_patch().set_edgecolor("#ef4444")
-        else:
-            status_text.set_text(
-                f"[{clock_str}] MES: {mes_desc} |  LỆNH ĐẠT KIỂM TRA (AI Policy + PINN + GPR) | Q_MES: {cur_q:.0f}kW | Quạt: {cur_p:.1f}kW | Tiết kiệm: {saved_pct:.1f}%"
-            )
-            status_text.set_backgroundcolor("#ecfdf5")
-            status_text.get_bbox_patch().set_edgecolor("#10b981")
+            if cur_status != "SAFE":
+                status_text.set_text(
+                    f"[{clock_str}] MES: {mes_desc} | ⚠️ GIỮ SẢN XUẤT (PLC Gatekeeper Fallback) | dP: {cur_dp:.1f} Pa | Tiết kiệm: {saved_pct:.1f}%"
+                )
+                status_text.set_backgroundcolor("#fee2e2")
+                status_text.get_bbox_patch().set_edgecolor("#ef4444")
+            else:
+                status_text.set_text(
+                    f"[{clock_str}] MES: {mes_desc} |  LỆNH ĐẠT KIỂM TRA (AI Policy + PINN + GPR) | Q_MES: {cur_q:.0f}kW | Quạt: {cur_p:.1f}kW | Tiết kiệm: {saved_pct:.1f}%"
+                )
+                status_text.set_backgroundcolor("#ecfdf5")
+                status_text.get_bbox_patch().set_edgecolor("#10b981")
+
+        except Exception as err:
+            print(f"[!] Animation Error: {err}")
+            import traceback
+            traceback.print_exc()
 
         return line_q_mes, line_p_gen, line_power, line_mau, line_ffu, line_dp, line_part
 
-    anim = FuncAnimation(fig, update_frame, interval=50, blit=False)
+    active_animation = FuncAnimation(fig, update_frame, interval=40, blit=False, cache_frame_data=False)
     plt.show()
 
 

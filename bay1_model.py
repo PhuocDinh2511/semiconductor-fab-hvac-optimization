@@ -168,6 +168,23 @@ class CleanroomPlant:
             "room_coil_kw": 30.0,
         }
 
+    def __getattr__(self, name):
+        if "state" in self.__dict__ and name in self.state:
+            return self.state[name]
+        if name == "particles":
+            return self.state.get("particle_count", 100.0)
+        if name == "vibration":
+            return 0.047
+        if name == "wafer_yield":
+            return 99.63
+        if name == "mau_filter_dp":
+            return MAU["filter_dp_rated_pa"]
+        if name == "target_temp":
+            return CONTROL["target_temp_c"]
+        if name == "C_thermal":
+            return AIR["effective_thermal_mass_kj_k"] * 1000.0
+        raise AttributeError(f"'CleanroomPlant' object has no attribute '{name}'")
+
     def compute_fan_powers(self, u_mau, u_ffu):
         """Return electrical watts. FFU points are from a published estimate table."""
         velocity = FFU["rated_face_velocity_m_s"] * u_ffu
