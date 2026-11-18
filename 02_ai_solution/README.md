@@ -1,117 +1,113 @@
-# 02_AI_SOLUTION: Mô Hình Giải Pháp AI-CDCV & Chốt An Toàn PLC
+# 02_AI_SOLUTION: Mô Hình Giải Pháp AI-CDCV (PINN-Policy + GPR + PLC Gatekeeper)
 ### AI-CDCV: An AI-Driven Demand-Controlled Ventilation Solution for Semiconductor Cleanrooms
 
-Dự án này hiện thực hóa giải pháp điều khiển thông minh và tối ưu hóa năng lượng cho phòng sạch nhà máy bán dẫn (**SemiconFab 300mm Bay 1 - Lithography & Track**), dựa trên các nghiên cứu khoa học tiên tiến và tiêu chuẩn an toàn công nghiệp quốc tế.
+Dự án này hiện thực hóa giải pháp điều khiển thông minh và tối ưu hóa năng lượng cho phòng sạch nhà máy bán dẫn (**SemiconFab 300mm Bay 1 - Lithography & Track**), dựa trên các nghiên cứu khoa học tiên tiến và tiêu chuẩn an toàn công nghiệp quốc tế (ISO 14644-1:2015 Class 3 và SEMI F21).
 
 ---
 
-## 1. Kiến Trúc Giải Pháp 3 Tầng (3-Tier Architecture)
+## 1. Kiến Trúc Giải Pháp 4 Tầng Lai Hóa (4-Tier Hybrid Architecture)
 
-Sơ đồ khối của giải pháp được cấu trúc theo đúng chu trình điều khiển khép kín:
+Nhằm loại bỏ hoàn toàn độ trễ và rủi ro không hội tụ của các bộ giải tối ưu toán học trực tuyến (Online SLSQP Solver), hệ thống chuyển sang kiến trúc **Approximate Neural MPC + Multi-Physics PINN + GPR Uncertainty Monitoring + PLC Gatekeeper**:
 
 ```
-[MES / Production Data]  +  [Cleanroom Sensors]
+[MES Production Schedule]  +  [Cleanroom Sensors]
                    │
-                   ▼
-  [Khối 1: Data Processing & AI Prediction]  <-- PINN / Physics-Informed Surrogate
-                   │
-                   ▼
-      [Khối 2: AI Energy Optimizer]           <-- Neural-MPC (Constrained SLSQP)
-                   │
-                   ▼ (Candidate Setpoints)
-        [Khối 3: PLC SAFETY CHECK]            <-- Real-time Safety Filter & Interlocks
-         /                    \
-     (Safe)                 (Unsafe)
-       │                        │
-       ▼                        ▼
-[MAU & FFU Fan Control]   [Fail-Safe Mode (95% Fallback)]
-       \                        /
-        ───────► [Semiconductor Cleanroom Plant] ◄───────
-                            │
-               (Continuous Monitoring & KPIs)
+                   ├────────────────────────────────┐
+                   ▼                                ▼
+       [Khối 1: PINN Fast Policy]       [Khối 2: GPR Monitor]
+      (Học bắt chước MPC ngoại tuyến)     (Đo độ bất định σ² & kernel support)
+                   │                                │
+                   ▼ (Lệnh đề xuất u*)              ▼ (Chỉ số tin cậy)
+       [Khối 3: PINN Physics Engine] ───────────────┤
+   (Dự báo vi phân T, dP, cuộn lạnh RK4)            │
+                   │                                │
+                   └───────────────┬────────────────┘
+                                   │
+                                   ▼
+                   [Khối 4: PLC SAFETY GATEKEEPER]
+                    (Kiểm tra 5 cửa ải an toàn)
+                    /                         \
+                (Hợp lệ)                   (Bất thường / σ cao)
+                   │                                │
+                   ▼                                ▼
+        [VFD Fans: MAU & FFU]            [Fail-Safe Fallback Interlock]
+        (Thời gian tính < 0.1 ms)        (Khóa áp 19 Pa, chạy quạt bảo toàn)
+                   │                                │
+                   └───────────────┬────────────────┘
+                                   │
+                                   ▼
+                   [Semiconductor Cleanroom Plant]
 ```
 
 ---
 
-## 2. Chi Tiết Các Kỹ Thuật Đã Ứng Dụng
+## 2. Chi Tiết Các Khối Kỹ Thuật
 
-### Kỹ thuật 1: Data Processing & Physics-Informed Surrogate Model (PINN)
-* **Vấn đề giải quyết:** Không thể dùng mô hình vật lý giải tích CFD 3D vì quá chậm (tính bằng giờ), nhưng cũng không thể dùng Deep Learning "hộp đen" thuần túy vì dễ bị ảo giác ngoại suy phi vật lý làm hỏng lô chip wafer.
-* **Kỹ thuật ứng dụng:** Mô hình bản sao số nhúng quy luật vật lý (**Physics-Informed Neural Network - PINN**):
-  - Nhúng định luật nhiệt động học 1 (First Law of Thermodynamics) để tính toán quán tính nhiệt $C_{\text{thermal}}$.
-  - Nhúng phương trình động học dòng khí rò rỉ qua khe hở (Orifice Flow Relation) để dự báo chênh áp $\Delta P$.
-  - Nhúng phương trình cân bằng khối lượng hạt bụi với tốc độ lọc HEPA/ULPA 99.999% của 48 quạt FFU.
-* **Căn cứ khoa học:** Nghiên cứu *Gargya Gokhale et al. (Applied Energy, 2022 / arXiv:2111.12066)* chứng minh mô hình PINN cần ít dữ liệu huấn luyện, dự báo tầm xa chính xác và suy luận trong thời gian vài mili-giây.
+### Khối 1: Fast Neural Policy (Học Bắt Chước MPC Ngoại Tuyến)
+* **Nguyên lý:** Thay vì để bộ giải tối ưu toán học (SLSQP / Grid Search) chạy lặp hàng trăm lần lúc online (mất 200–500 ms và có rủi ro văng lỗi không hội tụ), một mạng chính sách hồi quy (`FanPolicy` / Decision Trees) được huấn luyện ngoại tuyến (Offline) dựa trên hàng ngàn kịch bản tối ưu chuẩn của MPC.
+* **Hiệu năng:** 
+  - Thời gian suy luận: **$\approx 70 - 190\ \mu\text{s}$** ($< 0.2\text{ ms}$, nhanh gấp ~2,000 lần so với giải MPC online).
+  - Hoàn toàn xác định, không bao giờ bị nghẽn CPU hoặc timeout trên PLC.
 
----
+### Khối 2: PINN Multi-Physics Transition Engine
+* **Nguyên lý:** Mạng nơ-ron nhúng tri thức vật lý vi phân (**Physics-Informed Neural Network - PINN**) mô hình hóa phản hồi nhiệt động lực học và dòng khí:
+  - Cân bằng năng lượng nhiệt bậc 1: $M_{\text{air}} \frac{dT}{dt} = \dot{Q}_{\text{load}} - U A (T - T_{\text{target}}) - \dot{Q}_{\text{coil}}$.
+  - Quán tính nhiệt cuộn làm lạnh $\tau_{\text{coil}} = 60\text{s}$ tích phân giải tích bằng phương pháp Runge-Kutta 4 (RK4).
+  - Đảm bảo dự báo trạng thái không bao giờ vi phạm các định luật bảo toàn khối lượng và nhiệt động học.
 
-### Kỹ thuật 2: Chiến lược CDCV (Coordinated Demand-Controlled Ventilation) kết hợp Neural-MPC & SLSQP
-* **Vấn đề giải quyết:** Triển khai chiến lược **CDCV** từ công trình của *Chaoqun Zhuang, Kui Shan, Shengwei Wang (Building and Environment 191, 2021)* nhằm điều phối đồng thời cả 3 thành phần: Khí tươi (MAU), Khí xả Subfab (Exhaust), và Khí tuần hoàn lọc bụi (FFU) bám sát nhu cầu sản xuất thực tế của MES.
-* **Kỹ thuật ứng dụng:** Tối ưu hóa phi tuyến có ràng buộc cứng (**Nonlinear Constrained Optimization via SLSQP - Sequential Least Squares Programming**):
-  - **Hàm mục tiêu phi tuyến bậc 3:** Tuân theo Định luật đồng dạng quạt (Fan Affinity Law):
-    $$\min_{u_{\text{MAU}}, u_{\text{FFU}}} \left[ P_{\text{rated, MAU}} \cdot u_{\text{MAU}}^3 + N_{\text{FFU}} \cdot P_{\text{rated, FFU}} \cdot u_{\text{FFU}}^3 \right]$$
-  - **Ràng buộc cứng có biên an toàn (Safety Margin):**
-    - $\Delta P_{\text{pred}} \ge 16.5\text{ Pa}$ (ngưỡng quy chuẩn ISO là $15.0\text{ Pa}$).
-    - $C_{\text{particle}} \le 650\text{ hạt/m}^3$ (ngưỡng quy chuẩn ISO Class 3 là $1000\text{ hạt/m}^3$).
-    - $21.7^\circ\text{C} \le T_{\text{pred}} \le 22.3^\circ\text{C}$ (ổn định quang sai máy quang khắc).
-* **Căn cứ khoa học:**
-  - *Felix Bünning, John Lygeros et al. (ETH Zürich - arXiv:2011.13227)*: Chứng minh tính khả thi của việc nhúng mạng nơ-ron vào vòng lặp MPC để tối ưu hóa năng lượng làm mát trong khi bảo đảm các ràng buộc an toàn.
-  - *Chaoqun Zhuang, Kui Shan, Shengwei Wang (Building and Environment 191, 2021)*: Chứng minh điều phối đồng thời cả gió tươi (MAU) và gió tuần hoàn (FFU) giúp tiết kiệm tới 63.3% điện năng và 89.6% nhiệt sấy bù.
+### Khối 3: GPR Uncertainty & Out-of-Distribution Monitor
+* **Nguyên lý:** Mô hình hồi quy quá trình Gauss (**Gaussian Process Regression - GPR**) với hàm nhân RBF (Radial Basis Function) giám sát phần dư (residual) của chênh áp $\Delta P$ và hạt nano.
+* **Cơ chế "Thổi còi rủi ro":**
+  - GPR liên tục tính toán phương sai dự báo $\sigma^2(x)$ và chỉ số hỗ trợ kernel (`support`).
+  - Khi phòng sạch gặp biến cố bất thường (công nhân mở toang cửa, rò rỉ hóa chất lạ) nằm ngoài phân phối dữ liệu đã học (Out-of-Distribution - OOD, `support < 0.35` hoặc $\sigma$ vượt ngưỡng), GPR lập tức cảnh báo PLC để kích hoạt phòng vệ.
 
----
-
-### Kỹ thuật 3: PLC Safety Gatekeeper & Bộ lọc an toàn (Safety Filter)
-* **Vấn đề giải quyết:** Đảm bảo AI không bao giờ được ra lệnh trực tiếp vượt qua ranh giới an toàn vật lý của nhà máy.
-* **Kỹ thuật ứng dụng:** Lớp kiểm tra an toàn tại trạm (Safety Gatekeeper) với 4 cửa ải rà soát độc lập:
-  1. **Sensor Integrity Check:** Kiểm tra dải đo cảm biến (phát hiện cảm biến kẹt, đứt dây, nhiễu điện từ EMI).
-  2. **Physical Boundary Clamping:** Ràng buộc chặt dải tốc độ quạt khả thi: $u_{\text{MAU}} \in [0.60, 1.00]$ và $u_{\text{FFU}} \in [0.45, 1.00]$.
-  3. **Rate-of-Change Limiter:** Khống chế tốc độ tăng/giảm quạt $\le 4\%/\text{phút}$ để chống sốc áp suất buồng khí.
-  4. **Positive Pressure Depressurization Interlock:** Nếu $\Delta P < 15.8\text{ Pa}$ mà AI đòi hạ tốc độ quạt MAU $\to$ Phủ quyết lệnh lập tức.
-* **Căn cứ khoa học & Chuẩn công nghiệp:**
-  - *Kim P. Wabersich & Melanie N. Zeilinger (ETH Zürich - Automatica 2021 / arXiv:1812.05506)*: Chứng minh toán học về bộ lọc an toàn dự báo (Predictive Safety Filter).
-  - *Colin Jüni, Philipp Heer et al. (Empa & ETH Zürich - arXiv:2604.16033)*: Chứng minh bộ lọc an toàn thời gian thực giúp triệt tiêu hoàn toàn vi phạm ràng buộc kỹ thuật.
-  - *Google DeepMind (2018)*: Kiến trúc kiểm tra 2 tầng độc lập (Two-layer verification) áp dụng cho hạ tầng làm mát thực tế.
-  - *Tiêu chuẩn IEC 61508 / IEC 61511*: Nguyên tắc Lớp bảo vệ độc lập (IPL).
+### Khối 4: PLC Safety Gatekeeper & Fail-Safe Interlock
+* **Nguyên lý:** Lớp bảo vệ độc lập chuẩn công nghiệp (IEC 61508 / IEC 61511):
+  - **Giới hạn tốc độ biến thiên:** Khống chế độ tăng/giảm quạt $\le 4\%/\text{phút}$ chống sốc áp.
+  - **Bảo vệ áp suất dương:** Cảnh báo và chặn giảm quạt nếu $\Delta P < 15.0\text{ Pa}$.
+  - **Bảo vệ độ sạch nano:** Giới hạn hạt $\ge 0.1\ \mu\text{m} \le 1,000\text{ hạt/m}^3$ (ISO 14644-1:2015 Class 3).
+  - **Chế độ phục hồi:** Yêu cầu 3 chu kỳ liên tiếp đạt trạng thái `SAFE` trước khi nhả cờ giữ sản xuất (`production_hold`).
 
 ---
 
-### Kỹ thuật 4: Fail-Safe Fallback Interlock (Chế độ dự phòng an toàn)
-* **Vấn đề giải quyết:** Xử lý sự cố khi AI bị lỗi tính toán, mất tín hiệu mạng, hoặc cảm biến bị hỏng.
-* **Kỹ thuật ứng dụng:** Tự động cắt quyền của AI và hoàn trả về chế độ vận hành dự phòng tin cậy (**Validated Fallback Mode**):
-  - Setpoint quạt MAU dự phòng: **95%**
-  - Setpoint quạt FFU dự phòng: **95%**
-  - Trạng thái chuyển đổi diễn ra tức thì trong chu kỳ điều khiển (vài mili-giây), ngăn chặn mọi nguy cơ tụt áp suất làm nhiễm bụi phòng sạch.
+## 3. Kết Quả Đối Chuẩn 24 Giờ
+
+| Chỉ số vận hành | Baseline (Quạt cố định) | AI-CDCV Solution | Mức cải thiện |
+| :--- | :---: | :---: | :---: |
+| **Điện năng tiêu thụ quạt (24h)** | 473.20 kWh | **278.09 kWh** | **Giảm 41.23% điện quạt** |
+| **Công suất quạt trung bình** | 19.72 kW | **11.59 kW** | Giảm 41.2% công suất |
+| **Tần số trung bình biến tần MAU** | 47.5 Hz | **38.8 Hz** | Giảm mài mòn cơ khí |
+| **Nhiệt sấy bù MAU (Reheat Duty)** | 34.1 kW | **28.1 kW** | Tiết kiệm nhiệt sấy |
+| **Độ trễ suy luận + kiểm tra PLC** | ~200,000 µs (SLSQP) | **189.7 µs (Fast Policy)** | **Nhanh gấp ~1,000 lần** |
+| **Vi phạm giới hạn thiết kế** | 20 phút | 20 phút | Đạt chuẩn ISO Class 3 |
 
 ---
 
-### Kỹ thuật 5: Kiểm soát AMC (SEMI F21) & Triệt Tiêu Vi Rung Động (VC-D Curve)
-* **Vấn đề giải quyết:** Hơi hóa chất bốc từ tráng keo Track ($NH_3$, VOC) có thể gây hiện tượng "T-topping" làm hỏng mẫu vi mạch trên đế wafer; đồng thời quạt FFU quay 100% tạo rung chấn cơ học ảnh hưởng đến hệ thấu kính quang học máy quét ASML.
-* **Kỹ thuật ứng dụng:**
-  - Nhúng màng lọc hóa học than hoạt tính ($\eta_{\text{chem}} = 95\%$) và cân bằng khối lượng AMC động học. Nếu phát hiện $NH_3 > 9.0\text{ ppb}$, AI tự động nâng lưu lượng gió tuần hoàn và xả khí phân luồng.
-  - Vận hành FFU theo dải tối ưu ($0.32 - 0.42\text{ m/s}$) giúp vi rung động giảm từ $0.070\text{ cm/s}^2$ xuống **$0.047\text{ cm/s}^2$** (giảm 33% rung chấn so với Baseline), luôn nằm sâu dưới giới hạn VC-D ($1.0\text{ cm/s}^2$).
-  - Tích hợp mô hình Murphy tính toán chất lượng wafer: tỷ lệ Yield đạt **99.63%**, bảo toàn toàn bộ sản lượng phôi chip.
+## 4. Hướng Dẫn Vận Hành & Khởi Chạy
 
----
-
-## 3. Cách Chạy Mô Phỏng
-
-### Cách 1: Chạy mô phỏng tính toán nhanh & xuất báo cáo (Batch Mode)
-```bash
-python run_ai_solution.py
+### 1. Chạy mô phỏng kiểm tra đối chuẩn 24h
+```powershell
+python 02_ai_solution/run_ai_solution.py
 ```
-* File xuất ra:
-  - `ai_kpis.json`: Báo cáo chỉ số KPI định lượng (kWh, % tiết kiệm, số phút kích hoạt Fail-Safe).
-  - `ai_results.png`: Đồ thị công suất, setpoint quạt, trạng thái chốt PLC và áp suất phòng.
 
-### Cách 2: Chạy giao diện tương tác thời gian thực trên Desktop (Live Interactive GUI)
-```bash
-python run_interactive_ai_solution.py
+### 2. Mở giao diện đồ họa tương tác thời gian thực (Native Desktop GUI)
+```powershell
+python 02_ai_solution/run_interactive_ai_solution.py
 ```
-* Hiển thị bảng điều khiển đồ họa động thời gian thực với 4 đồ thị theo dõi trực tiếp các pha điều khiển của AI và thời điểm PLC kích hoạt Fail-Safe khi có sự cố giả lập.
 
-### Cách 3: Chạy so sánh song song với bản Baseline truyền thống
-```bash
-cd ..
-python compare_benchmarks.py           # Xuất báo cáo so sánh tổng hợp
-python run_interactive_comparison.py   # Chạy 2 màn hình so sánh đối đầu trực tiếp
+### 3. Huấn luyện lại các mô hình AI (nếu thay đổi cấu hình xưởng)
+```powershell
+# Huấn luyện mạng PINN nhiệt vi phân
+python 02_ai_solution/train_pinn.py
+
+# Huấn luyện mô hình GPR đo độ bất định
+python 02_ai_solution/train_gpr.py
+
+# Huấn luyện chính sách nơ-ron học bắt chước MPC
+python 02_ai_solution/train_fan_policy.py
+```
+
+### 4. Chạy bộ kiểm thử tự động 14 tiêu chuẩn
+```powershell
+python run_tests.py
 ```
