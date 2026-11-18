@@ -124,6 +124,17 @@ semicon_fab_simulation/
 │   ├── scenario_comparison_report.png   # Biểu đồ tổng hợp đối chuẩn 5 kịch bản
 │   └── scenarios_benchmark_results.json # Bảng số liệu chi tiết 5 kịch bản
 │
+├── 04_sac_solution/                     # Giải pháp Soft Actor-Critic (SAC) & Continuous Action Masking
+│   ├── sac_agent.py                     # Lõi SAC: Gaussian Actor, Double Critics, Auto-Alpha
+│   ├── sac_controller.py                # Bộ điều khiển công nghiệp: Action Masking, Double-Q Uncertainty, Watchdog
+│   ├── train_sac.py                     # Script huấn luyện SAC nâng cao (BC Pre-training + Biemann Hybrid Reward)
+│   ├── run_sac_solution.py              # Script mô phỏng 24h xuất sac_kpis.json & sac_results.png
+│   ├── run_interactive_sac_solution.py  # Giao diện đồ họa thời gian thực cho SAC
+│   ├── sac_weights.json                 # Trọng số mạng Actor và Double-Q Critics
+│   ├── sac_kpis.json                    # Dữ liệu KPI định lượng 24h của SAC
+│   ├── sac_results.png                  # Đồ thị đối chuẩn 4 subplot trực quan hóa 24 giờ
+│   └── README.md                        # Tài liệu hướng dẫn kỹ thuật chi tiết
+│
 ├── bay1_model.py                        # Phương trình động học vật lý phòng sạch Bay 1
 ├── bay1_control.py                      # Chốt an toàn PLC Gatekeeper & Bộ giải tối ưu MPC
 ├── bay1_pinn.py                         # Triển khai thuật toán PINN nhiệt vi phân

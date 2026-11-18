@@ -1,0 +1,30 @@
+{
+  "architecture": "Soft Actor-Critic (SAC) + Action Masking + Double-Q Uncertainty + Watchdog",
+  "reference_papers": [
+    "Haarnoja et al., ICML 2018 (SAC)",
+    "Ding et al., IEEE 2024 (CLUE)",
+    "Kumar et al., IEEE ISGT 2023 (Masked RL)",
+    "Silvestri et al., Applied Energy 2024 (ETH Zurich)",
+    "Biemann et al., Applied Energy 2021 (Continuous HVAC Benchmark & Hybrid Reward)"
+  ],
+  "duration_hours": 24.0,
+  "total_steps": 1440,
+  "baseline_fan_energy_kwh": 1028.66,
+  "sac_fan_energy_kwh": 568.7,
+  "fan_energy_saved_kwh": 459.95,
+  "fan_energy_saved_pct": 44.71,
+  "baseline_violation_minutes": 0.0,
+  "sac_violation_minutes": 0.0,
+  "ai_inferences_accepted": 1440,
+  "ai_acceptance_rate_pct": 100.0,
+  "failsafe_trigger_minutes": 0.0,
+  "median_latency_us": 210.7,
+  "p95_latency_us": 290.7,
+  "mean_sac_uncertainty": 0.1232,
+  "avg_mau_vfd_hz": 39.5,
+  "avg_ffu_speed_pct": 79.6,
+  "temp_min_c": 21.7,
+  "temp_max_c": 22.22,
+  "dp_min_pa": 16.28,
+  "particles_max_per_m3": 64.8
+}
