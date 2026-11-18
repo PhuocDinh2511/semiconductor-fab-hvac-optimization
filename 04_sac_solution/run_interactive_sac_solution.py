@@ -163,82 +163,90 @@ def run_interactive_sac_simulation(speed_factor=10):
     hud_lat = fig.text(0.50, 0.915, "ĐỘ TRỄ SAC: ~220 µs | CƠ CHẾ: ACTION MASKING", color="#94a3b8", fontsize=9)
 
     step_idx = 0
+    last_cmd = {"status": "SAFE", "watchdog_heartbeat": True}
 
     def update(frame):
-        nonlocal step_idx, sac_fan_cum, base_fan_cum
+        nonlocal step_idx, sac_fan_cum, base_fan_cum, last_cmd
         if step_idx >= total_steps:
             return line_temp, line_dp, line_part, line_mau, line_ffu, line_sac_e, line_unc
 
-        # Advance by speed_factor steps per frame
-        for _ in range(speed_factor):
-            if step_idx >= total_steps:
-                break
+        try:
+            # Advance by speed_factor steps per frame
+            for _ in range(speed_factor):
+                if step_idx >= total_steps:
+                    break
 
-            t_hr = float(times_hr[step_idx])
-            dist = disturbance_at(scenario, step_idx)
-            now_s = step_idx * dt_sec
-            sensors = plant.sensor_data(dist) | {"sample_time_s": now_s}
-            forecast = scheduled_forecast(scenario, step_idx, dist)
+                t_hr = float(times_hr[step_idx])
+                dist = disturbance_at(scenario, step_idx)
+                now_s = step_idx * dt_sec
+                sensors = plant.sensor_data(dist) | {"sample_time_s": now_s}
+                forecast = scheduled_forecast(scenario, step_idx, dist)
 
-            cmd = controller.command_setpoints(
-                sensors, dist.equipment_kw, dist.particles_per_min, now_s=now_s, dt_sec=dt_sec, forecast=forecast,
-            )
+                cmd = controller.command_setpoints(
+                    sensors, dist.equipment_kw, dist.particles_per_min, now_s=now_s, dt_sec=dt_sec, forecast=forecast,
+                )
+                last_cmd = cmd
 
-            u_mau = cmd["u_mau"]
-            u_ffu = cmd["u_ffu"]
+                u_mau = cmd["u_mau"]
+                u_ffu = cmd["u_ffu"]
 
-            # Energy
-            p_sac = 15.0 * (u_mau ** 3) + 30.0 * (u_ffu ** 3)
-            sac_fan_cum += p_sac * dt_hr
-            p_base = 15.0 * (CONTROL["baseline_mau"] ** 3) + 30.0 * (CONTROL["baseline_ffu"] ** 3)
-            base_fan_cum += p_base * dt_hr
+                # Energy
+                p_sac = 15.0 * (u_mau ** 3) + 30.0 * (u_ffu ** 3)
+                sac_fan_cum += p_sac * dt_hr
+                p_base = 15.0 * (CONTROL["baseline_mau"] ** 3) + 30.0 * (CONTROL["baseline_ffu"] ** 3)
+                base_fan_cum += p_base * dt_hr
 
-            plant.step(u_mau, u_ffu, dist.equipment_kw, dist.particles_per_min, disturbance=dist)
-            curr = plant.sensor_data(dist)
+                plant.step(u_mau, u_ffu, dist.equipment_kw, dist.particles_per_min, disturbance=dist)
+                curr = plant.sensor_data(dist)
 
-            history["time"].append(t_hr)
-            history["temp"].append(curr["temp"])
-            history["dp"].append(curr["dp"])
-            history["particles"].append(curr["particle_count"])
-            history["u_mau"].append(u_mau * 100.0)
-            history["u_ffu"].append(u_ffu * 100.0)
-            history["energy_sac"].append(sac_fan_cum)
-            history["energy_base"].append(base_fan_cum)
-            history["uncertainty"].append(cmd["sac_uncertainty"])
+                history["time"].append(t_hr)
+                history["temp"].append(curr["temp"])
+                history["dp"].append(curr["dp"])
+                history["particles"].append(curr["particle_count"])
+                history["u_mau"].append(u_mau * 100.0)
+                history["u_ffu"].append(u_ffu * 100.0)
+                history["energy_sac"].append(sac_fan_cum)
+                history["energy_base"].append(base_fan_cum)
+                history["uncertainty"].append(cmd["sac_uncertainty"])
 
-            step_idx += 1
+                step_idx += 1
 
-        # Update Live Plots
-        t_data = history["time"]
-        line_temp.set_data(t_data, history["temp"])
-        line_temp_set.set_data([0, 24], [22.0, 22.0])
-        line_dp.set_data(t_data, history["dp"])
-        line_part.set_data(t_data, history["particles"])
-        line_mau.set_data(t_data, history["u_mau"])
-        line_ffu.set_data(t_data, history["u_ffu"])
-        line_base_e.set_data(t_data, history["energy_base"])
-        line_sac_e.set_data(t_data, history["energy_sac"])
-        line_unc.set_data(t_data, history["uncertainty"])
+            # Update Live Plots
+            t_data = history["time"]
+            line_temp.set_data(t_data, history["temp"])
+            line_temp_set.set_data([0, 24], [22.0, 22.0])
+            line_dp.set_data(t_data, history["dp"])
+            line_part.set_data(t_data, history["particles"])
+            line_mau.set_data(t_data, history["u_mau"])
+            line_ffu.set_data(t_data, history["u_ffu"])
+            line_base_e.set_data(t_data, history["energy_base"])
+            line_sac_e.set_data(t_data, history["energy_sac"])
+            line_unc.set_data(t_data, history["uncertainty"])
 
-        # Update HUD Text
-        last_t = t_data[-1] if t_data else 0.0
-        phase_str, phase_color = get_mes_phase_info(last_t)
-        hud_mes.set_text(f"CA VẬN HÀNH: {phase_str}")
-        hud_mes.set_color(phase_color)
+            # Update HUD Text
+            last_t = t_data[-1] if t_data else 0.0
+            phase_str, phase_color = get_mes_phase_info(last_t)
+            hud_mes.set_text(f"CA VẬN HÀNH: {phase_str}")
+            hud_mes.set_color(phase_color)
 
-        status_str = cmd.get("status", "SAFE")
-        if status_str == "SAFE":
-            hud_stat.set_text(f"TRẠNG THÁI: ● {status_str} [SAC TOÀN QUYỀN]")
-            hud_stat.set_color("#34d399")
-        else:
-            hud_stat.set_text(f"TRẠNG THÁI: ⚠️ {status_str} [PLC CAN THIỆP]")
-            hud_stat.set_color("#ef4444")
+            status_str = last_cmd.get("status", "SAFE")
+            if status_str == "SAFE":
+                hud_stat.set_text(f"TRẠNG THÁI: ● {status_str} [SAC TOÀN QUYỀN]")
+                hud_stat.set_color("#34d399")
+            else:
+                hud_stat.set_text(f"TRẠNG THÁI: ⚠️ {status_str} [PLC CAN THIỆP]")
+                hud_stat.set_color("#ef4444")
 
-        saved_pct = 100.0 * (1.0 - sac_fan_cum / max(1e-6, base_fan_cum))
-        hud_kpi.set_text(f"TIẾT KIỆM NĂNG LƯỢNG: {saved_pct:.1f}% ({base_fan_cum - sac_fan_cum:.1f} kWh)")
+            saved_pct = 100.0 * (1.0 - sac_fan_cum / max(1e-6, base_fan_cum))
+            hud_kpi.set_text(f"TIẾT KIỆM NĂNG LƯỢNG: {saved_pct:.1f}% ({base_fan_cum - sac_fan_cum:.1f} kWh)")
 
-        wd_pulse = "●" if cmd["watchdog_heartbeat"] else "○"
-        hud_wd.set_text(f"WATCHDOG HEARTBEAT: {wd_pulse} OPC-UA PULSE [HEALTHY]")
+            wd_pulse = "●" if last_cmd.get("watchdog_heartbeat", True) else "○"
+            hud_wd.set_text(f"WATCHDOG HEARTBEAT: {wd_pulse} OPC-UA PULSE [HEALTHY]")
+
+        except Exception as err:
+            print(f"[!] Animation Error: {err}")
+            import traceback
+            traceback.print_exc()
 
         return line_temp, line_dp, line_part, line_mau, line_ffu, line_sac_e, line_unc
 

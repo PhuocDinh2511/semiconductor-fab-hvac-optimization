@@ -108,7 +108,7 @@
       },
       "failsafe_trigger_minutes": 0.0,
       "production_hold_minutes": 0.0,
-      "median_safe_command_time_us": 152.2
+      "median_safe_command_time_us": 191.45
     },
     "ai_solution": {
       "mode": "ai",
@@ -144,7 +144,7 @@
       },
       "failsafe_trigger_minutes": 0.0,
       "production_hold_minutes": 0.0,
-      "median_safe_command_time_us": 188.9,
+      "median_safe_command_time_us": 311.4,
       "policy_model": "bay1-fan-policy-1",
       "training_source": "synthetic_physics_mpc_imitation",
       "ai_inferences": 1440,
@@ -270,7 +270,7 @@
       },
       "failsafe_trigger_minutes": 51.0,
       "production_hold_minutes": 55.0,
-      "median_safe_command_time_us": 152.3
+      "median_safe_command_time_us": 221.4
     },
     "ai_solution": {
       "mode": "ai",
@@ -306,7 +306,7 @@
       },
       "failsafe_trigger_minutes": 51.0,
       "production_hold_minutes": 55.0,
-      "median_safe_command_time_us": 189.5,
+      "median_safe_command_time_us": 282.8,
       "policy_model": "bay1-fan-policy-1",
       "training_source": "synthetic_physics_mpc_imitation",
       "ai_inferences": 1389,
@@ -432,7 +432,7 @@
       },
       "failsafe_trigger_minutes": 495.0,
       "production_hold_minutes": 497.0,
-      "median_safe_command_time_us": 152.9
+      "median_safe_command_time_us": 811.8
     },
     "ai_solution": {
       "mode": "ai",
@@ -468,7 +468,7 @@
       },
       "failsafe_trigger_minutes": 490.0,
       "production_hold_minutes": 492.0,
-      "median_safe_command_time_us": 195.14999999999998,
+      "median_safe_command_time_us": 2214.8,
       "policy_model": "bay1-fan-policy-1",
       "training_source": "synthetic_physics_mpc_imitation",
       "ai_inferences": 951,
@@ -594,7 +594,7 @@
       },
       "failsafe_trigger_minutes": 151.0,
       "production_hold_minutes": 153.0,
-      "median_safe_command_time_us": 153.3
+      "median_safe_command_time_us": 911.2
     },
     "ai_solution": {
       "mode": "ai",
@@ -630,7 +630,7 @@
       },
       "failsafe_trigger_minutes": 151.0,
       "production_hold_minutes": 153.0,
-      "median_safe_command_time_us": 193.4,
+      "median_safe_command_time_us": 2034.5,
       "policy_model": "bay1-fan-policy-1",
       "training_source": "synthetic_physics_mpc_imitation",
       "ai_inferences": 1289,
@@ -756,7 +756,7 @@
       },
       "failsafe_trigger_minutes": 0.0,
       "production_hold_minutes": 0.0,
-      "median_safe_command_time_us": 156.9
+      "median_safe_command_time_us": 1009.05
     },
     "ai_solution": {
       "mode": "ai",
@@ -792,7 +792,7 @@
       },
       "failsafe_trigger_minutes": 0.0,
       "production_hold_minutes": 0.0,
-      "median_safe_command_time_us": 197.8,
+      "median_safe_command_time_us": 2139.45,
       "policy_model": "bay1-fan-policy-1",
       "training_source": "synthetic_physics_mpc_imitation",
       "ai_inferences": 1440,
